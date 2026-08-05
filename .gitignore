@@ -34,4 +34,4 @@ tmp/
 
 # local verification artifacts
 .playwright-mcp/
-phase0-*.png
+phase*.png
