@@ -1,6 +1,6 @@
 {
-  "buildCommand": "node -e \"const e=p=>require('fs').existsSync(p);console.log('DIAG root',e('node_modules/vite'),'client',e('client/node_modules/vite'),'bin',e('node_modules/.bin/vite'))\"; npm run build --workspace=client",
+  "installCommand": "cd client && npm install",
+  "buildCommand": "cd client && npm run build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm ci --include=dev",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
