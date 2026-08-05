@@ -1,6 +1,11 @@
-// Phase 0: datasource and generator only. Every table arrives in Phase 1 from
-// doc/01_DATA_MODEL.md. An empty schema still generates a client, which is all
-// /health needs for its SELECT 1.
+// Phase 1 data layer. Mirrors doc/01_DATA_MODEL.md table for table.
+//
+// Conventions, applied without exception:
+// - Money is Int in minor units, every field suffixed Minor. No Float anywhere.
+// - Every timestamp is @db.Timestamptz and stored UTC.
+// - Roles and permissions are rows, never enums, so they are editable at runtime.
+// - Local wall-clock times are minutes from local midnight, resolved against the
+//   vendor's IANA timezone at read time. See doc/features/M5_AVAILABILITY_SLOTS.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,4 +14,472 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- identity
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  roleId       String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+
+  role                Role                   @relation(fields: [roleId], references: [id])
+  vendorProfile       VendorProfile?
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  bookings            Booking[]              @relation("CustomerBookings")
+  statusChanges       BookingStatusHistory[]
+  reviewedVendors     VendorProfile[]        @relation("VendorReviewer")
+  idempotencyKeys     IdempotencyKey[]
+  auditLogs           AuditLog[]
+
+  @@index([roleId])
+}
+
+// Roles are data. isSystem protects the four seeded rows from deletion.
+model Role {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  resource    String
+  action      String
+  description String?
+
+  roles RolePermission[]
+
+  @@index([resource])
+}
+
+// The join that makes a permission revocable with no redeploy.
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+// The token itself is never stored, only its hash. replacedByTokenId forms the
+// rotation chain that lets reuse of a rotated token revoke the whole family.
+model RefreshToken {
+  id                String    @id @default(cuid())
+  userId            String
+  tokenHash         String    @unique
+  expiresAt         DateTime  @db.Timestamptz
+  revokedAt         DateTime? @db.Timestamptz
+  replacedByTokenId String?
+  createdAt         DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// STRETCH - forgot-password flow. Item 3 on the cut list.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz
+  usedAt    DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- vendors
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model VendorProfile {
+  id               String       @id @default(cuid())
+  userId           String       @unique
+  businessName     String
+  contactName      String
+  contactPhone     String
+  addressLine1     String
+  addressLine2     String?
+  city             String
+  state            String
+  postalCode       String
+  // IANA name, validated against Intl.supportedValuesOf('timeZone'). Authority for
+  // all slot maths on this vendor's services.
+  timezone         String
+  status           VendorStatus @default(PENDING)
+  rejectionReason  String?
+  reviewedByUserId String?
+  reviewedAt       DateTime?    @db.Timestamptz
+  createdAt        DateTime     @default(now()) @db.Timestamptz
+  updatedAt        DateTime     @updatedAt @db.Timestamptz
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?            @relation("VendorReviewer", fields: [reviewedByUserId], references: [id])
+  documents  VendorDocument[]
+  services   Service[]
+  bookings   Booking[]
+
+  @@index([status])
+}
+
+// Only the filename is stored; the file lives on local disk. Render's disk is
+// ephemeral, so a missing file degrades to 410 rather than erroring - see M3.
+model VendorDocument {
+  id               String   @id @default(cuid())
+  vendorProfileId  String
+  kind             String
+  originalFilename String
+  storedFilename   String   @unique
+  mimeType         String
+  sizeBytes        Int
+  createdAt        DateTime @default(now()) @db.Timestamptz
+
+  vendorProfile VendorProfile @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+
+  @@index([vendorProfileId])
+}
+
+// ---------------------------------------------------------------- catalogue
+
+enum ServiceStatus {
+  DRAFT
+  PUBLISHED
+  SUSPENDED
+}
+
+// Self-relation. Two levels are enforced in the service layer: a category whose
+// parentId is set cannot itself become a parent.
+model Category {
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
+  parentId  String?
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  services Service[]
+
+  @@index([parentId])
+}
+
+model Service {
+  id              String        @id @default(cuid())
+  vendorProfileId String
+  categoryId      String
+  title           String
+  description     String
+  status          ServiceStatus @default(DRAFT)
+  suspensionReason String?
+  // Width of the shared capacity grid. Every offering's durationMinutes must be a
+  // multiple of this, enforced at the boundary in M4.
+  slotGranularityMinutes Int @default(15)
+  // Cancellation policy is per service, as the brief requires. Cancelling inside
+  // the window is allowed but forfeits cancellationFeePercent of the price.
+  freeCancellationHours  Int @default(24)
+  cancellationFeePercent Int @default(50)
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  vendorProfile VendorProfile            @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
+  category      Category                 @relation(fields: [categoryId], references: [id])
+  images        ServiceImage[]
+  offerings     Offering[]
+  rules         AvailabilityRule[]
+  exceptions    AvailabilityException[]
+  slotCells     SlotCell[]
+  bookings      Booking[]
+
+  // Backs the paginated public catalogue filter.
+  @@index([status, categoryId])
+  @@index([vendorProfileId, status])
+  @@index([title])
+}
+
+model ServiceImage {
+  id             String @id @default(cuid())
+  serviceId      String
+  storedFilename String
+  sortOrder      Int    @default(0)
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+}
+
+// durationMinutes drives slot length. priceMinor is the only source of truth for a
+// booking's price - never the request body.
+model Offering {
+  id              String  @id @default(cuid())
+  serviceId       String
+  name            String
+  durationMinutes Int
+  priceMinor      Int
+  currency        String  @default("INR")
+  isActive        Boolean @default(true)
+
+  service  Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([serviceId, isActive])
+}
+
+// ---------------------------------------------------------------- availability
+
+enum ExceptionType {
+  CLOSURE
+  OPEN_WINDOW
+}
+
+// weekday 0-6 (Sunday = 0). startMinute/endMinute are minutes from local midnight
+// in the vendor's timezone. Several rows per weekday give several windows.
+model AvailabilityRule {
+  id          String @id @default(cuid())
+  serviceId   String
+  weekday     Int
+  startMinute Int
+  endMinute   Int
+  capacity    Int    @default(1)
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, weekday])
+}
+
+// CLOSURE removes the whole local date. OPEN_WINDOW adds a window on a normally
+// closed day. Deleting the row restores normal hours - no other state changes.
+model AvailabilityException {
+  id          String        @id @default(cuid())
+  serviceId   String
+  date        DateTime      @db.Date
+  type        ExceptionType
+  startMinute Int?
+  endMinute   Int?
+  capacity    Int?
+  reason      String?
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, date])
+}
+
+// A consumption ledger, NOT a slot table. Created lazily on the first booking
+// attempt that touches a cell. No row here makes a slot exist; deleting every row
+// changes no slot's existence, only its remaining capacity. The unique index is the
+// lock target for the capacity race - see doc/01_DATA_MODEL.md and M5/M6.
+model SlotCell {
+  id          String   @id @default(cuid())
+  serviceId   String
+  startUtc    DateTime @db.Timestamptz
+  capacity    Int
+  bookedCount Int      @default(0)
+
+  service  Service            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  bookings BookingSlotCell[]
+
+  @@unique([serviceId, startUtc])
+}
+
+// ---------------------------------------------------------------- bookings
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  REJECTED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentMode {
+  PAY_NOW
+  PAY_AFTER
+}
+
+model Booking {
+  id                   String        @id @default(cuid())
+  reference            String        @unique
+  serviceId            String
+  offeringId           String
+  customerUserId       String
+  // Denormalised so ownership checks and admin filters need no join.
+  vendorProfileId      String
+  startUtc             DateTime      @db.Timestamptz
+  endUtc               DateTime      @db.Timestamptz
+  status               BookingStatus @default(PENDING)
+  // Price at time of booking, copied from Offering.priceMinor.
+  priceMinor           Int
+  currency             String        @default("INR")
+  paymentMode          PaymentMode
+  cancellationFeeMinor Int           @default(0)
+  cancelReason         String?
+  createdAt            DateTime      @default(now()) @db.Timestamptz
+  updatedAt            DateTime      @updatedAt @db.Timestamptz
+
+  service       Service                @relation(fields: [serviceId], references: [id])
+  offering      Offering               @relation(fields: [offeringId], references: [id])
+  customer      User                   @relation("CustomerBookings", fields: [customerUserId], references: [id])
+  vendorProfile VendorProfile          @relation(fields: [vendorProfileId], references: [id])
+  history       BookingStatusHistory[]
+  slotCells     BookingSlotCell[]
+  payments      Payment[]
+  ledgerEntries LedgerEntry[]
+
+  @@index([vendorProfileId, status, startUtc])
+  @@index([customerUserId, startUtc])
+  @@index([startUtc, status])
+  @@index([serviceId, startUtc])
+}
+
+// Written inside the same transaction as every status change. Drives the timeline.
+model BookingStatusHistory {
+  id            String         @id @default(cuid())
+  bookingId     String
+  fromStatus    BookingStatus?
+  toStatus      BookingStatus
+  actorUserId   String?
+  actorRoleSlug String?
+  reason        String?
+  createdAt     DateTime       @default(now()) @db.Timestamptz
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  actor   User?   @relation(fields: [actorUserId], references: [id])
+
+  @@index([bookingId, createdAt])
+}
+
+// Records which grid cells a booking consumed, so reschedule and cancel release
+// exactly those cells and nothing else.
+model BookingSlotCell {
+  bookingId  String
+  slotCellId String
+
+  booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  slotCell SlotCell @relation(fields: [slotCellId], references: [id], onDelete: Cascade)
+
+  @@id([bookingId, slotCellId])
+  @@index([slotCellId])
+}
+
+// ---------------------------------------------------------------- payments
+
+enum PaymentStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum LedgerEntryType {
+  CHARGE
+  REFUND
+  CASH_COLLECTED
+  CANCELLATION_FEE
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  bookingId     String
+  amountMinor   Int
+  currency      String        @default("INR")
+  status        PaymentStatus @default(INITIATED)
+  mode          PaymentMode
+  // Always "mock". There is no real gateway in this project by design.
+  provider      String        @default("mock")
+  providerRef   String?       @unique
+  failureReason String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @db.Timestamptz
+
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+// Append-only. Nothing here is ever updated, and admin revenue is summed from this
+// table rather than from Booking.priceMinor - see M8.
+model LedgerEntry {
+  id          String          @id @default(cuid())
+  bookingId   String
+  paymentId   String?
+  type        LedgerEntryType
+  amountMinor Int
+  currency    String          @default("INR")
+  createdAt   DateTime        @default(now()) @db.Timestamptz
+
+  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payment Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([bookingId])
+  @@index([type])
+}
+
+// Replay returns the stored response. The same key with a different requestHash is
+// a 409, not a silent overwrite.
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  userId         String
+  key            String
+  scope          String
+  requestHash    String
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scope, key])
+}
+
+// Dedupe table. A second delivery of the same eventId is acknowledged and ignored.
+// Dedupe works by the insert failing on this unique index, never by reading first.
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  type        String
+  payload     Json
+  processedAt DateTime @default(now()) @db.Timestamptz
+}
+
+/// STRETCH - audit log. Item 2 on the cut list; BookingStatusHistory already
+/// records actor, action, target and timestamp for the interventions that matter.
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([actorUserId, createdAt])
 }

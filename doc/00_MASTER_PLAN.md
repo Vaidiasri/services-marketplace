@@ -96,9 +96,11 @@ Full `schema.prisma` for every table in [01_DATA_MODEL.md](01_DATA_MODEL.md), on
 initial migration, and a seed that inserts the permission catalogue and four roles.
 Nothing else in the seed yet.
 
-Render's build command becomes `npm ci && npx prisma migrate deploy && npm run build`, and
-the seed moves to a separate Render **pre-deploy** command so a seed failure cannot mask a
-successful migration. Deferred from Phase 0 deliberately - see above.
+`prisma migrate deploy` runs from the server's **start** script, not from Render's build
+command. Two reasons: the service was configured manually rather than from `render.yaml`,
+so the dashboard build field is the real one and every edit there is a chance for the two
+to drift - which already cost two failed deploys in Phase 0 - and `migrate deploy` is
+idempotent, so running it on every boot is harmless. Deferred from Phase 0 deliberately.
 
 > **Verify:** `npx prisma migrate reset` completes, then a query returns the seeded
 > permission count and four role rows. Then the deployed `/health` still reports `db: "up"`

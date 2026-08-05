@@ -27,8 +27,13 @@ convenience only; the guard always compares exact slugs.
 | admin | `admin.dashboard.read` |
 | audit | `audit.read` (STRETCH) |
 
-52 slugs. `admin.dashboard.read` and `audit.read` are the only three-segment slugs;
-the guard splits on the last dot for the `resource`/`action` columns.
+**47 slugs**, counted from the table above (3+5+1+5+4+7+3+2+10+5+1+1). An earlier
+draft of this file claimed 52, which was wrong; the seed asserts the real number so
+the two cannot drift again.
+
+`admin.dashboard.read` is the only three-segment slug. `resource`/`action` are derived
+by splitting on the **last** dot, so it stores resource `admin.dashboard`, action
+`read`. The guard always compares whole slugs, never resource or action separately.
 
 ## Read vs read_all - the ownership boundary
 
