@@ -103,6 +103,33 @@ export const Errors = {
       'These fields cannot be changed after approval.',
       { fields },
     ),
+  categoryExists: (name: string) =>
+    new AppError('CATEGORY_EXISTS', HttpStatus.CONFLICT, 'A sibling category already has that name.', {
+      name,
+    }),
+  categoryInUse: (childCount: number, serviceCount: number) =>
+    new AppError('CATEGORY_IN_USE', HttpStatus.CONFLICT, 'That category is still in use.', {
+      childCount,
+      serviceCount,
+    }),
+  serviceInUse: (bookingCount: number) =>
+    new AppError('SERVICE_IN_USE', HttpStatus.CONFLICT, 'That service has bookings and cannot be deleted.', {
+      bookingCount,
+    }),
+  offeringInUse: (bookingCount: number) =>
+    new AppError(
+      'OFFERING_IN_USE',
+      HttpStatus.CONFLICT,
+      'That offering has bookings. Set isActive to false instead of deleting it.',
+      { bookingCount },
+    ),
+  futureBookingsExist: (bookingCount: number) =>
+    new AppError(
+      'FUTURE_BOOKINGS_EXIST',
+      HttpStatus.CONFLICT,
+      'That service has upcoming bookings, so it cannot be withdrawn.',
+      { bookingCount },
+    ),
   lastSuperAdmin: () =>
     new AppError(
       'LAST_SUPER_ADMIN',
@@ -133,6 +160,46 @@ export const Errors = {
       HttpStatus.UNPROCESSABLE_ENTITY,
       'That file type is not accepted.',
       { allowed },
+    ),
+  categoryDepthExceeded: () =>
+    new AppError(
+      'CATEGORY_DEPTH_EXCEEDED',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Categories are two levels deep. That parent is already a subcategory.',
+    ),
+  categoryInvalid: () =>
+    new AppError(
+      'CATEGORY_INVALID',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'That category does not exist or is not active.',
+    ),
+  noActiveOffering: () =>
+    new AppError(
+      'NO_ACTIVE_OFFERING',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Add at least one active offering before publishing.',
+    ),
+  noAvailability: () =>
+    new AppError(
+      'NO_AVAILABILITY',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Set at least one weekly availability rule before publishing.',
+    ),
+  // The boundary check that keeps the slot grid representable. See M5 for why an
+  // unaligned duration cannot be laid on a shared capacity grid.
+  durationNotAligned: (granularityMinutes: number) =>
+    new AppError(
+      'DURATION_NOT_ALIGNED',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      `Duration must be a multiple of the service's ${granularityMinutes}-minute slot size.`,
+      { granularityMinutes },
+    ),
+  granularityConflict: (offeringIds: string[], granularityMinutes: number) =>
+    new AppError(
+      'GRANULARITY_CONFLICT',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Existing offerings do not divide evenly into that slot size.',
+      { offeringIds, granularityMinutes },
     ),
   unknownPermissions: (slugs: string[]) =>
     new AppError(

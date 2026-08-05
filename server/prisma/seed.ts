@@ -147,17 +147,73 @@ async function seedRoles(permissionIds: Map<string, string>): Promise<void> {
   }
 }
 
+/**
+ * Two levels, matching the limit CategoriesService enforces. Seeded because a service
+ * cannot be created without a category to point at, so an empty database would leave a
+ * vendor with nothing to do on their first screen.
+ *
+ * Slugs are parent-prefixed here exactly as CategoriesService generates them, so a seeded
+ * category and an admin-created one are indistinguishable.
+ */
+const CATEGORIES: { name: string; children: string[] }[] = [
+  { name: 'Beauty & Wellness', children: ['Salon', 'Spa & Massage', 'Nails'] },
+  { name: 'Home Services', children: ['Cleaning', 'Plumbing', 'Electrical', 'Pest Control'] },
+  { name: 'Fitness', children: ['Personal Training', 'Yoga'] },
+  { name: 'Repairs', children: ['Appliance Repair', 'Device Repair'] },
+];
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+}
+
+async function seedCategories(): Promise<void> {
+  let created = 0;
+
+  for (const parent of CATEGORIES) {
+    const parentSlug = slugify(parent.name);
+    // Upsert on slug, so re-running the seed neither duplicates a category nor resets an
+    // isActive flag or sortOrder an admin has since changed.
+    const row = await prisma.category.upsert({
+      where: { slug: parentSlug },
+      update: {},
+      create: { name: parent.name, slug: parentSlug },
+    });
+    created++;
+
+    for (const child of parent.children) {
+      await prisma.category.upsert({
+        where: { slug: `${parentSlug}-${slugify(child)}` },
+        update: {},
+        create: { name: child, slug: `${parentSlug}-${slugify(child)}`, parentId: row.id },
+      });
+      created++;
+    }
+  }
+
+  console.log(`[seed] categories reconciled: ${created}`);
+}
+
 async function main(): Promise<void> {
   const permissionIds = await seedPermissions();
   console.log(`[seed] permissions: ${permissionIds.size}`);
   await seedRoles(permissionIds);
+  await seedCategories();
 
-  const [permissions, roles, links] = await Promise.all([
+  const [permissions, roles, links, categories] = await Promise.all([
     prisma.permission.count(),
     prisma.role.count(),
     prisma.rolePermission.count(),
+    prisma.category.count(),
   ]);
-  console.log(`[seed] done. permissions=${permissions} roles=${roles} rolePermissions=${links}`);
+  console.log(
+    `[seed] done. permissions=${permissions} roles=${roles} ` +
+      `rolePermissions=${links} categories=${categories}`,
+  );
 }
 
 main()

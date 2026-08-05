@@ -9,7 +9,7 @@
     "prisma:generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "test": "npm run test:routes && npm run test:guard && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs",
+    "test": "npm run test:routes && npm run test:guard && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs && node test/catalog.integration.mjs",
     "test:routes": "ts-node test/route-coverage.ts",
     "test:guard": "ts-node test/approved-vendor-guard.ts",
     "test:seed-admins": "node test/make-admins.mjs"

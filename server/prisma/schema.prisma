@@ -206,6 +206,13 @@ model Service {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
+  // A STORED generated column over title + description, declared here only so Prisma
+  // knows it exists and does not try to drop it as drift. Prisma cannot express
+  // GENERATED ALWAYS, so the real definition is hand-written SQL in the
+  // 20260805_service_search migration. Never written by application code - it is
+  // computed by Postgres, and Unsupported() keeps it out of the create/update types.
+  searchVector Unsupported("tsvector")?
+
   vendorProfile VendorProfile            @relation(fields: [vendorProfileId], references: [id], onDelete: Cascade)
   category      Category                 @relation(fields: [categoryId], references: [id])
   images        ServiceImage[]
@@ -218,7 +225,10 @@ model Service {
   // Backs the paginated public catalogue filter.
   @@index([status, categoryId])
   @@index([vendorProfileId, status])
+  // Kept for `sort=title`, which a btree serves. It does NOT serve `q` - a leading
+  // wildcard ILIKE cannot use it, which is why searchVector exists.
   @@index([title])
+  @@index([searchVector], type: Gin)
 }
 
 model ServiceImage {
