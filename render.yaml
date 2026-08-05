@@ -1,0 +1,24 @@
+# Render blueprint for the API. Phase 0 deliberately does NOT run migrations or the
+# seed - there is no schema yet and a non-zero exit would red the first deploy, which
+# is the failure Phase 0 exists to prevent. Phase 1 changes buildCommand to:
+#   npm ci && npx prisma migrate deploy --schema server/prisma/schema.prisma && npm run build
+# and adds the seed as a preDeployCommand.
+
+services:
+  - type: web
+    name: marketplace-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm ci && npm run build --workspace=server
+    startCommand: npm run start --workspace=server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Set in the Render dashboard, never here. Use the Neon POOLED endpoint.
+      - key: DATABASE_URL
+        sync: false
+      # The exact Vercel origin, no trailing slash and no wildcard.
+      - key: CLIENT_ORIGIN
+        sync: false

@@ -1,0 +1,12 @@
+// Phase 0: datasource and generator only. Every table arrives in Phase 1 from
+// doc/01_DATA_MODEL.md. An empty schema still generates a client, which is all
+// /health needs for its SELECT 1.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
