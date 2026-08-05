@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useLogin } from '@/lib/auth';
 import type { ApiError } from '@/lib/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -105,19 +105,28 @@ export function Login() {
             Seeded accounts
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1">
+        <CardContent className="space-y-1.5">
           {SEEDED.map((s) => (
-            <Button
+            // A button rather than the Button component: buttonVariants sets
+            // whitespace-nowrap, which pushed these emails outside the card.
+            <button
               key={s.email}
-              variant="link"
-              size="sm"
-              className="h-auto justify-start p-0 text-left"
+              type="button"
               onClick={() => setEmail(s.email)}
+              className="group flex w-full items-center justify-between gap-2 rounded-lg border border-white/50 bg-white/40 px-3 py-2 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-300/60 hover:bg-white/75 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
             >
-              {s.label} - {s.email}
-            </Button>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{s.label}</span>
+                <span className="block truncate font-mono text-[11px] text-muted-foreground">
+                  {s.email}
+                </span>
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-indigo-500 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
+            </button>
           ))}
-          <p className="pt-2 text-xs text-muted-foreground">Password is in the README.</p>
+          <p className="pt-1 text-xs text-muted-foreground">
+            Password is in the README.
+          </p>
         </CardContent>
       </Card>
     </div>

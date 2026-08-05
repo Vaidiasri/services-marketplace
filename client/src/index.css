@@ -61,6 +61,72 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/*
+ * Glassmorphism layer.
+ *
+ * Two rules kept throughout: text sits on a surface opaque enough to stay readable
+ * (70% light / 60% dark, not the 20% that looks good in a screenshot and fails in use),
+ * and every animation is disabled under prefers-reduced-motion. A blurred translucent
+ * panel over a moving gradient is exactly the combination that triggers vestibular
+ * discomfort.
+ */
+@layer components {
+  .glass {
+    @apply border border-white/40 bg-white/70 shadow-[0_8px_32px_-8px_rgba(15,23,42,0.18)] backdrop-blur-xl backdrop-saturate-150;
+  }
+
+  .dark .glass {
+    @apply border-white/10 bg-slate-900/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6)];
+  }
+
+  /* Interactive lift. transform+shadow only, so it never triggers layout. */
+  .glass-hover {
+    @apply transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-white/60 hover:shadow-[0_16px_48px_-12px_rgba(15,23,42,0.28)];
+  }
+
+  .dark .glass-hover {
+    @apply hover:border-white/20;
+  }
+
+  /* A hairline highlight along the top edge - what reads as "glass" rather than
+     "translucent rectangle". */
+  .glass-sheen {
+    @apply relative overflow-hidden;
+  }
+
+  .glass-sheen::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent;
+  }
+}
+
+@layer utilities {
+  .aurora-blob {
+    @apply pointer-events-none absolute rounded-full opacity-60 blur-3xl;
+    animation: drift 22s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  @keyframes drift {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(4rem, -3rem, 0) scale(1.15);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

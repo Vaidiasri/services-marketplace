@@ -5,7 +5,12 @@ const Card = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}
+      // glass + glass-sheen by default so every card participates; a caller can still
+      // override with a plain background because cn() resolves the conflict in its favour.
+      className={cn(
+        'glass glass-sheen glass-hover rounded-xl text-card-foreground',
+        className,
+      )}
       {...props}
     />
   ),
