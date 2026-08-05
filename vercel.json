@@ -1,5 +1,5 @@
 {
-  "buildCommand": "echo '--- DIAG: is vite on disk? ---'; ls -d node_modules/vite client/node_modules/vite 2>&1 || true; echo '--- DIAG: vite binary ---'; ls -l node_modules/.bin/vite 2>&1 || true; echo '--- DIAG: npm ls vite ---'; npm ls vite --workspace=client 2>&1 || true; echo '--- DIAG end ---'; npm run build --workspace=client",
+  "buildCommand": "node -e \"const e=p=>require('fs').existsSync(p);console.log('DIAG root',e('node_modules/vite'),'client',e('client/node_modules/vite'),'bin',e('node_modules/.bin/vite'))\"; npm run build --workspace=client",
   "outputDirectory": "client/dist",
   "installCommand": "npm ci --include=dev",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
