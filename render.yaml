@@ -10,7 +10,10 @@ services:
     runtime: node
     plan: free
     rootDir: .
-    buildCommand: npm ci && npm run build --workspace=server
+    # --include=dev is required, not optional. Render sets NODE_ENV=production, which
+    # makes npm skip devDependencies, and the build needs @nestjs/cli and typescript
+    # from there. Without it the build dies on "sh: 1: nest: not found".
+    buildCommand: npm ci --include=dev && npm run build --workspace=server
     startCommand: npm run start --workspace=server
     healthCheckPath: /health
     envVars:
