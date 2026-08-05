@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../auth/jwt-auth.guard';
 
 const DB_PROBE_TIMEOUT_MS = 1500;
 
@@ -14,6 +15,9 @@ type Health = {
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Explicitly public: the platform health check carries no token, and a 401 here
+  // would make Render mark a perfectly healthy service as failed.
+  @Public()
   @Get()
   async check(): Promise<Health> {
     return {

@@ -4,6 +4,8 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { isOriginAllowed } from './common/cors';
 
@@ -22,8 +24,15 @@ function allowedOrigins(): string[] {
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const origins = allowedOrigins();
+
+  // Needed to read the httpOnly refresh cookie on /auth/refresh and /auth/logout.
+  app.use(cookieParser());
+  // Render and Vercel both terminate TLS upstream, so without this Express sees the
+  // request as http and refuses to set a `secure` cookie - the refresh cookie would
+  // silently never reach the browser in production.
+  app.set('trust proxy', 1);
 
   app.enableCors({
     // A callback rather than the array form, so wildcard entries work. An absent
