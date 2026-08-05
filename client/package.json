@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "typecheck": "tsc -b",
     "preview": "vite preview"
   },
   "//": "Build tools sit in dependencies, not devDependencies, deliberately. Vercel installed only 409 of 505 packages and dropped exactly this workspace's devDependencies, and neither .npmrc include=dev nor an explicit npm ci --include=dev changed that count. This is a static build, so nothing here reaches a runtime and the cost is install size only. Recorded in DECISIONS.md.",
