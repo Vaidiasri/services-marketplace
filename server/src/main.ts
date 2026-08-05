@@ -5,9 +5,15 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { isOriginAllowed } from './common/cors';
 
-// Comma-separated exact origins. Never '*': a wildcard cannot carry credentials,
-// and the refresh cookie in M1 depends on credentialed cross-origin requests.
+// Comma-separated origins. Never a bare '*': that cannot carry credentials, and the
+// refresh cookie in M1 depends on credentialed cross-origin requests.
+//
+// A single '*' inside an entry is allowed and matches one DNS label, so
+// "https://*.vercel.app" covers every alias of the deployed client. Vercel mints a
+// new per-deployment hostname on every push, so an exact-only allowlist breaks the
+// client each time the API is not also redeployed.
 function allowedOrigins(): string[] {
   return (process.env.CLIENT_ORIGIN ?? 'http://localhost:5173')
     .split(',')
@@ -20,7 +26,11 @@ async function bootstrap(): Promise<void> {
   const origins = allowedOrigins();
 
   app.enableCors({
-    origin: origins,
+    // A callback rather than the array form, so wildcard entries work. An absent
+    // Origin (curl, server-to-server, same-origin) is allowed through; the browser
+    // only enforces this for cross-origin requests anyway.
+    origin: (origin: string | undefined, cb: (e: Error | null, ok?: boolean) => void) =>
+      cb(null, !origin || isOriginAllowed(origin, origins)),
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
