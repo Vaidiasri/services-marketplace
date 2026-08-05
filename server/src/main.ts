@@ -8,6 +8,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { isOriginAllowed } from './common/cors';
+import { ensureUploadDir } from './vendors/upload.config';
 
 // Comma-separated origins. Never a bare '*': that cannot carry credentials, and the
 // refresh cookie in M1 depends on credentialed cross-origin requests.
@@ -44,6 +45,10 @@ async function bootstrap(): Promise<void> {
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
   });
+
+  // Created at boot rather than on first upload, so a permissions problem on the volume
+  // surfaces in the deploy log instead of as a 500 for the first vendor who tries.
+  ensureUploadDir();
 
   const port = Number(process.env.PORT ?? 3000);
   // 0.0.0.0, not localhost - Render's proxy cannot reach a loopback-only bind.

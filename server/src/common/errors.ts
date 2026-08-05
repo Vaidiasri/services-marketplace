@@ -55,9 +55,31 @@ export const Errors = {
       { missing },
     ),
 
+  // 403 - the third gate. Distinct codes so the client can render the vendor's actual
+  // situation rather than a generic refusal.
+  notAVendor: () =>
+    new AppError('NOT_A_VENDOR', HttpStatus.FORBIDDEN, 'This account is not a vendor.'),
+  vendorPending: () =>
+    new AppError(
+      'VENDOR_PENDING_APPROVAL',
+      HttpStatus.FORBIDDEN,
+      'Your vendor account is awaiting approval.',
+    ),
+  vendorRejected: (reason: string | null) =>
+    new AppError(
+      'VENDOR_REJECTED',
+      HttpStatus.FORBIDDEN,
+      'Your vendor application was rejected.',
+      { reason },
+    ),
+
   // 404
   notFound: (what = 'Resource') =>
     new AppError('NOT_FOUND', HttpStatus.NOT_FOUND, `${what} not found.`),
+  // A row exists but its file does not. Expected on Render, whose disk is ephemeral -
+  // 410 says "was here, is gone" where 404 would wrongly imply it never existed.
+  fileGone: () =>
+    new AppError('FILE_GONE', HttpStatus.GONE, 'That file is no longer available.'),
 
   // 409
   emailTaken: () =>
@@ -74,11 +96,27 @@ export const Errors = {
     new AppError('ROLE_IN_USE', HttpStatus.CONFLICT, 'That role is still assigned to users.', {
       userCount,
     }),
+  profileLocked: (fields: string[]) =>
+    new AppError(
+      'PROFILE_LOCKED',
+      HttpStatus.CONFLICT,
+      'These fields cannot be changed after approval.',
+      { fields },
+    ),
   lastSuperAdmin: () =>
     new AppError(
       'LAST_SUPER_ADMIN',
       HttpStatus.CONFLICT,
       'This is the only active super admin and cannot be changed.',
+    ),
+
+  // 413
+  fileTooLarge: (maxBytes: number) =>
+    new AppError(
+      'FILE_TOO_LARGE',
+      HttpStatus.PAYLOAD_TOO_LARGE,
+      `That file is larger than the ${Math.round(maxBytes / 1024 / 1024)} MB limit.`,
+      { maxBytes },
     ),
 
   // 422 - the request was well-formed but semantically wrong
@@ -88,6 +126,13 @@ export const Errors = {
       HttpStatus.UNPROCESSABLE_ENTITY,
       'The request body is not valid.',
       details,
+    ),
+  unsupportedFileType: (allowed: string[]) =>
+    new AppError(
+      'UNSUPPORTED_FILE_TYPE',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'That file type is not accepted.',
+      { allowed },
     ),
   unknownPermissions: (slugs: string[]) =>
     new AppError(

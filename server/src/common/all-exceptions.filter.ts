@@ -95,6 +95,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       403: 'FORBIDDEN',
       404: 'NOT_FOUND',
       409: 'CONFLICT',
+      // Nest's multer interceptor maps LIMIT_FILE_SIZE to PayloadTooLargeException, so
+      // an oversized upload arrives here as a bare 413 with no code of its own.
+      413: 'FILE_TOO_LARGE',
       422: 'VALIDATION_FAILED',
       429: 'RATE_LIMITED',
     };

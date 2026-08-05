@@ -16,11 +16,8 @@ export const Public = (): MethodDecorator & ClassDecorator => SetMetadata(IS_PUB
 
 export type Caller = { userId: string; roleSlug: string };
 
-declare module 'express' {
-  interface Request {
-    caller?: Caller;
-  }
-}
+// The Request augmentation lives in src/types/express.d.ts so it applies to every
+// compilation, not only the ones that happen to include this file.
 
 /**
  * Runs before PermissionsGuard and only ever attaches a verified identity. Guard order

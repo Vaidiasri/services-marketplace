@@ -9,12 +9,15 @@ import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { PermissionsGuard } from './rbac/permissions.guard';
 import { RbacModule } from './rbac/rbac.module';
+import { ApprovedVendorGuard } from './vendors/approved-vendor.guard';
+import { VendorsModule } from './vendors/vendors.module';
 
 @Module({
   imports: [
     PrismaModule,
     RbacModule,
     AuthModule,
+    VendorsModule,
     ThrottlerModule.forRoot([{ name: 'default', limit: 120, ttl: 60_000 }]),
   ],
   controllers: [HealthController],
@@ -27,6 +30,11 @@ import { RbacModule } from './rbac/rbac.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    // Third and last: vendor status. Runs only after permission has already passed, so a
+    // caller who lacks the permission gets 403 FORBIDDEN rather than a message about
+    // their vendor status - the more specific refusal would leak that the route exists
+    // and what it needs.
+    { provide: APP_GUARD, useClass: ApprovedVendorGuard },
   ],
 })
 export class AppModule implements NestModule {

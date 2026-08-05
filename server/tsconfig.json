@@ -21,6 +21,10 @@
       "@/*": ["src/*"]
     }
   },
+  // ts-node otherwise compiles only what the entry file imports, which skips
+  // src/types/express.d.ts and makes req.caller an error in any test that loads a guard
+  // directly - even though `tsc -p` passes. `files: true` makes it honour "include".
+  "ts-node": { "files": true },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

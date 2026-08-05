@@ -9,8 +9,9 @@
     "prisma:generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "test": "npm run test:routes && node test/auth.integration.mjs && node test/rbac.integration.mjs",
+    "test": "npm run test:routes && npm run test:guard && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs",
     "test:routes": "ts-node test/route-coverage.ts",
+    "test:guard": "ts-node test/approved-vendor-guard.ts",
     "test:seed-admins": "node test/make-admins.mjs"
   },
   "prisma": {
@@ -35,6 +36,7 @@
     "@nestjs/schematics": "^10.2.3",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "prisma": "^6.2.1",
     "ts-node": "^10.9.2",
