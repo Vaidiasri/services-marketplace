@@ -8,7 +8,7 @@ import {
   setSessionLostHandler,
   subscribeToToken,
   type ApiError,
-} from './api';
+} from '@/lib/api';
 
 export type Me = {
   id: string;

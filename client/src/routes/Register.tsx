@@ -1,7 +1,17 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useRegisterCustomer, useRegisterVendor } from '../lib/auth';
-import type { ApiError } from '../lib/api';
+import { AlertCircle } from 'lucide-react';
+import { useRegisterCustomer, useRegisterVendor } from '@/lib/auth';
+import type { ApiError } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Field } from './Login';
 
 /** Maps the server's Zod issue list onto the form so errors land on the right input. */
@@ -20,39 +30,49 @@ export function RegisterCustomer() {
   const set = (k: string) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="text-2xl font-semibold">Create a customer account</h1>
-      <form
-        className="mt-6 space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          reg.mutate(form, { onSuccess: () => navigate('/') });
-        }}
-      >
-        <Field label="Full name" value={form.fullName} onChange={set('fullName')} />
-        <Field label="Email" type="email" value={form.email} onChange={set('email')} />
-        <Field label="Password" type="password" value={form.password} onChange={set('password')} />
-        {fe.password && <p className="text-sm text-red-700">{fe.password}</p>}
-        {err && !Object.keys(fe).length && (
-          <p className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
-            {err.message}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={reg.isPending}
-          className="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+    <Card className="mx-auto max-w-sm">
+      <CardHeader>
+        <CardTitle>Create a customer account</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            reg.mutate(form, { onSuccess: () => navigate('/') });
+          }}
         >
-          {reg.isPending ? 'Creating...' : 'Create account'}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-slate-600">
-        Already have one?{' '}
-        <Link to="/login" className="font-medium text-slate-900 underline">
-          Sign in
-        </Link>
-      </p>
-    </div>
+          <Field id="fullName" label="Full name" value={form.fullName} onChange={set('fullName')} error={fe.fullName} />
+          <Field id="email" label="Email" type="email" value={form.email} onChange={set('email')} error={fe.email} />
+          <Field
+            id="password"
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={set('password')}
+            error={fe.password}
+          />
+
+          {err && !Object.keys(fe).length && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{err.message}</AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" className="w-full" disabled={reg.isPending}>
+            {reg.isPending ? 'Creating...' : 'Create account'}
+          </Button>
+        </form>
+
+        <p className="mt-4 text-sm text-muted-foreground">
+          Already have one?{' '}
+          <Link to="/login" className="font-medium text-foreground underline">
+            Sign in
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -82,53 +102,62 @@ export function RegisterVendor() {
   const fe = fieldErrors(err);
   const set = (k: string) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  const fields: [string, string, string?][] = [
+    ['fullName', 'Your name'],
+    ['email', 'Email', 'email'],
+    ['password', 'Password', 'password'],
+    ['businessName', 'Business name'],
+    ['contactName', 'Contact name'],
+    ['contactPhone', 'Contact phone'],
+    ['addressLine1', 'Address'],
+    ['city', 'City'],
+    ['state', 'State'],
+    ['postalCode', 'Postal code'],
+    ['timezone', 'Timezone (IANA)'],
+  ];
+
   return (
-    <div className="mx-auto max-w-lg">
-      <h1 className="text-2xl font-semibold">Apply as a vendor</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Your account starts as pending. An admin reviews it before you can publish
-        anything.
-      </p>
-
-      <form
-        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          reg.mutate(form, { onSuccess: () => navigate('/') });
-        }}
-      >
-        <Field label="Your name" value={form.fullName} onChange={set('fullName')} />
-        <Field label="Email" type="email" value={form.email} onChange={set('email')} />
-        <Field label="Password" type="password" value={form.password} onChange={set('password')} />
-        <Field label="Business name" value={form.businessName} onChange={set('businessName')} />
-        <Field label="Contact name" value={form.contactName} onChange={set('contactName')} />
-        <Field label="Contact phone" value={form.contactPhone} onChange={set('contactPhone')} />
-        <Field label="Address" value={form.addressLine1} onChange={set('addressLine1')} />
-        <Field label="City" value={form.city} onChange={set('city')} />
-        <Field label="State" value={form.state} onChange={set('state')} />
-        <Field label="Postal code" value={form.postalCode} onChange={set('postalCode')} />
-        <Field label="Timezone (IANA)" value={form.timezone} onChange={set('timezone')} />
-
-        <div className="sm:col-span-2">
-          {Object.entries(fe).map(([k, v]) => (
-            <p key={k} className="text-sm text-red-700">
-              {k}: {v}
-            </p>
+    <Card className="mx-auto max-w-lg">
+      <CardHeader>
+        <CardTitle>Apply as a vendor</CardTitle>
+        <CardDescription>
+          Your account starts as pending. An admin reviews it before you can publish
+          anything.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            reg.mutate(form, { onSuccess: () => navigate('/') });
+          }}
+        >
+          {fields.map(([key, label, type]) => (
+            <Field
+              key={key}
+              id={key}
+              label={label}
+              type={type}
+              value={form[key]}
+              onChange={set(key)}
+              error={fe[key]}
+            />
           ))}
-          {err && !Object.keys(fe).length && (
-            <p className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
-              {err.message}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={reg.isPending}
-            className="mt-2 w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-          >
-            {reg.isPending ? 'Submitting...' : 'Submit application'}
-          </button>
-        </div>
-      </form>
-    </div>
+
+          <div className="space-y-3 sm:col-span-2">
+            {err && !Object.keys(fe).length && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{err.message}</AlertDescription>
+              </Alert>
+            )}
+            <Button type="submit" className="w-full" disabled={reg.isPending}>
+              {reg.isPending ? 'Submitting...' : 'Submit application'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

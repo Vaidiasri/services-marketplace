@@ -40,7 +40,8 @@ const ok = (cond, label, extra) => {
   }
 };
 
-const dir = mkdtempSync(join(tmpdir(), 'api-test-'));
+// Written next to node_modules so the transpiled module can resolve 'axios'.
+const dir = mkdtempSync(join(process.cwd(), 'node_modules', '.api-test-'));
 const file = join(dir, 'api.mjs');
 writeFileSync(file, src);
 const api = await import(pathToFileURL(file).href);
@@ -51,40 +52,49 @@ let refreshCalls = 0;
 let protectedCalls = 0;
 let refreshShouldFail = false;
 
-const json = (status, body) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
+/**
+ * A stub axios adapter. Replaces the network entirely, and is responsible for settling
+ * on status itself - axios delegates that to the adapter.
+ */
+function makeAdapter() {
+  return async (config) => {
+    const url = String(config.url ?? '');
+    const reply = (status, data) => {
+      const response = { data, status, statusText: '', headers: {}, config };
+      if (status >= 200 && status < 300) return response;
+      const err = new Error(`Request failed with status code ${status}`);
+      err.isAxiosError = true;
+      err.response = response;
+      err.config = config;
+      throw err;
+    };
 
-globalThis.fetch = async (url, init) => {
-  const path = String(url).replace(API_BASE, '');
-
-  if (path === '/auth/refresh') {
-    refreshCalls++;
-    // A real refresh is a network round trip. Without this delay the calls would
-    // serialise and the test would pass even with no dedupe at all.
-    await new Promise((r) => setTimeout(r, 25));
-    if (refreshShouldFail) {
-      return json(401, { error: { code: 'REFRESH_INVALID', message: 'no' } });
+    if (url.includes('/auth/refresh')) {
+      refreshCalls++;
+      // A real refresh is a network round trip. Without this delay the calls would
+      // serialise and the test would pass even with no dedupe at all.
+      await new Promise((r) => setTimeout(r, 25));
+      return refreshShouldFail
+        ? reply(401, { error: { code: 'REFRESH_INVALID', message: 'no' } })
+        : reply(200, { accessToken: 'fresh-token' });
     }
-    return json(200, { accessToken: 'fresh-token' });
-  }
 
-  protectedCalls++;
-  const auth = new Headers(init?.headers).get('authorization');
-  if (auth === 'Bearer fresh-token') return json(200, { ok: true });
-  return json(401, { error: { code: 'TOKEN_EXPIRED', message: 'expired' } });
-};
+    protectedCalls++;
+    const auth = config.headers?.authorization ?? config.headers?.Authorization;
+    return auth === 'Bearer fresh-token'
+      ? reply(200, { ok: true })
+      : reply(401, { error: { code: 'TOKEN_EXPIRED', message: 'expired' } });
+  };
+}
+
+api._setTestAdapter(makeAdapter());
 
 // ---------------------------------------------------------------- tests
 
 api._resetRefreshState();
 api.setAccessToken('stale-token');
 
-const results = await Promise.all(
-  Array.from({ length: 6 }, () => api.apiFetch('/me')),
-);
+const results = await Promise.all(Array.from({ length: 6 }, () => api.apiFetch('/me')));
 
 ok(refreshCalls === 1, '6 concurrent 401s trigger exactly ONE refresh', refreshCalls);
 ok(results.every((r) => r.ok === true), 'all 6 requests still resolve successfully');
@@ -112,6 +122,12 @@ try {
   threw = e;
 }
 ok(threw !== null, 'a failed refresh rejects rather than hanging');
+// The ORIGINAL request's error surfaces, not the refresh's. The caller asked for /me
+// and /me failed; why recovery also failed is the session-lost handler's business, and
+// leaking REFRESH_INVALID here would have screens rendering a refresh-token message for
+// a request that was never about refreshing.
+ok(threw?.code === 'TOKEN_EXPIRED', 'the rejection is a typed ApiError for the original request', threw?.code);
+ok(threw?.constructor?.name === 'ApiError', 'and it is an ApiError, not a raw AxiosError', threw?.constructor?.name);
 ok(refreshCalls === 1, 'a failed refresh is not retried', refreshCalls);
 ok(sessionLost === 1, 'session-lost handler fired exactly once', sessionLost);
 ok(api.getAccessToken() === null, 'token cleared after failed refresh');
@@ -120,14 +136,24 @@ ok(api.getAccessToken() === null, 'token cleared after failed refresh');
 api._resetRefreshState();
 refreshShouldFail = false;
 refreshCalls = 0;
-globalThis.fetch = async (url) => {
-  const path = String(url);
-  if (path.includes('/auth/refresh')) {
+api._setTestAdapter(async (config) => {
+  const url = String(config.url ?? '');
+  if (url.includes('/auth/refresh')) {
     refreshCalls++;
-    return json(200, { accessToken: 'fresh-token' });
+    return { data: { accessToken: 'fresh-token' }, status: 200, statusText: '', headers: {}, config };
   }
-  return json(401, { error: { code: 'TOKEN_INVALID', message: 'forged' } });
-};
+  const err = new Error('401');
+  err.isAxiosError = true;
+  err.config = config;
+  err.response = {
+    data: { error: { code: 'TOKEN_INVALID', message: 'forged' } },
+    status: 401,
+    statusText: '',
+    headers: {},
+    config,
+  };
+  throw err;
+});
 api.setAccessToken('forged');
 try {
   await api.apiFetch('/me');
@@ -135,6 +161,21 @@ try {
   /* expected */
 }
 ok(refreshCalls === 0, 'TOKEN_INVALID does not trigger a refresh', refreshCalls);
+
+// A network failure with no response must be readable, not a crash.
+api._resetRefreshState();
+api._setTestAdapter(async () => {
+  const err = new Error('Network Error');
+  err.isAxiosError = true;
+  throw err;
+});
+let netErr = null;
+try {
+  await api.apiFetch('/me');
+} catch (e) {
+  netErr = e;
+}
+ok(netErr?.code === 'NETWORK_ERROR', 'an unreachable API yields NETWORK_ERROR, not a parse crash', netErr?.code);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -1,7 +1,19 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useLogin } from '../lib/auth';
-import type { ApiError } from '../lib/api';
+import { AlertCircle } from 'lucide-react';
+import { useLogin } from '@/lib/auth';
+import type { ApiError } from '@/lib/api';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const SEEDED = [
   { label: 'Super admin', email: 'super@marketplace.test' },
@@ -17,105 +29,135 @@ export function Login() {
   const err = login.error as ApiError | null;
 
   return (
-    <div className="mx-auto max-w-sm">
-      <h1 className="text-2xl font-semibold">Sign in</h1>
+    <div className="mx-auto max-w-sm space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Sign in</CardTitle>
+          <CardDescription>
+            The interface changes to match the permissions your role holds.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              login.mutate({ email, password }, { onSuccess: () => navigate('/') });
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-      <form
-        className="mt-6 space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          login.mutate({ email, password }, { onSuccess: () => navigate('/') });
-        }}
-      >
-        <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
-        <Field
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          autoComplete="current-password"
-        />
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-        {err && (
-          <p className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
-            {/* The server returns identical bodies for unknown email and wrong password,
-                so there is nothing here to disclose which it was. */}
-            {err.message}
+            {err && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                {/* The server returns identical bodies for unknown email and wrong
+                    password, so there is nothing here to disclose which it was. */}
+                <AlertDescription>{err.message}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button type="submit" className="w-full" disabled={login.isPending}>
+              {login.isPending ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </form>
+
+          <p className="mt-4 text-sm text-muted-foreground">
+            No account?{' '}
+            <Link to="/register" className="font-medium text-foreground underline">
+              Register as a customer
+            </Link>{' '}
+            or{' '}
+            <Link to="/register/vendor" className="font-medium text-foreground underline">
+              as a vendor
+            </Link>
+            .
           </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={login.isPending}
-          className="w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-        >
-          {login.isPending ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
-
-      <p className="mt-4 text-sm text-slate-600">
-        No account?{' '}
-        <Link to="/register" className="font-medium text-slate-900 underline">
-          Register as a customer
-        </Link>{' '}
-        or{' '}
-        <Link to="/register/vendor" className="font-medium text-slate-900 underline">
-          as a vendor
-        </Link>
-        .
-      </p>
+        </CardContent>
+      </Card>
 
       {/* Seeded accounts one click away, because a reviewer's first thirty seconds are
           spent looking for exactly this. Password comes from the README, not from here. */}
-      <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-          Seeded accounts
-        </p>
-        <ul className="mt-2 space-y-1">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Seeded accounts
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
           {SEEDED.map((s) => (
-            <li key={s.email}>
-              <button
-                type="button"
-                onClick={() => setEmail(s.email)}
-                className="text-left text-sm text-slate-700 underline hover:text-slate-900"
-              >
-                {s.label} - {s.email}
-              </button>
-            </li>
+            <Button
+              key={s.email}
+              variant="link"
+              size="sm"
+              className="h-auto justify-start p-0 text-left"
+              onClick={() => setEmail(s.email)}
+            >
+              {s.label} - {s.email}
+            </Button>
           ))}
-        </ul>
-        <p className="mt-2 text-xs text-slate-500">Password is in the README.</p>
-      </div>
+          <p className="pt-2 text-xs text-muted-foreground">Password is in the README.</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
+/** Shared by the register screens so a labelled field is one line there too. */
 export function Field({
   label,
+  id,
   type = 'text',
   value,
   onChange,
   autoComplete,
   required = true,
+  error,
 }: {
   label: string;
+  id: string;
   type?: string;
   value: string;
   onChange: (v: string) => void;
   autoComplete?: string;
   required?: boolean;
+  error?: string;
 }) {
   return (
-    <label className="block">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      <input
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
         type={type}
         value={value}
         required={required}
         autoComplete={autoComplete}
+        aria-invalid={error ? true : undefined}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-slate-900"
+        className={error ? 'border-destructive' : undefined}
       />
-    </label>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
   );
 }

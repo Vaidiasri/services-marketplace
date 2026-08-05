@@ -12,7 +12,11 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    // Must stay in step with resolve.alias in vite.config.ts, or the editor and the
+    // bundler disagree about what "@/..." means.
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src"]
 }

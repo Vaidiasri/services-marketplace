@@ -1,4 +1,4 @@
-import { useAuth } from './auth';
+import { useAuth } from '@/lib/auth';
 
 /**
  * Hiding is cosmetic. Every action these gate maps to a server-guarded endpoint, and

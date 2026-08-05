@@ -1,12 +1,13 @@
 import { Link, Route, Routes } from 'react-router-dom';
-import { useAuth } from './lib/auth';
-import { Home } from './routes/Home';
-import { Login } from './routes/Login';
-import { RegisterCustomer, RegisterVendor } from './routes/Register';
+import { useAuth } from '@/lib/auth';
+import { Button } from '@/components/ui/button';
+import { Home } from '@/routes/Home';
+import { Login } from '@/routes/Login';
+import { RegisterCustomer, RegisterVendor } from '@/routes/Register';
 
 export function App() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-background">
       <Header />
       <main className="mx-auto max-w-4xl px-4 py-8">
         <Routes>
@@ -24,26 +25,22 @@ export function App() {
 function Header() {
   const { me, logout } = useAuth();
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="border-b bg-card">
       <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
         <Link to="/" className="font-semibold">
           Services Marketplace
         </Link>
         {me ? (
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-slate-500">{me.role.name}</span>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="rounded border border-slate-300 px-3 py-1.5 font-medium hover:bg-slate-50"
-            >
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">{me.role.name}</span>
+            <Button variant="outline" size="sm" onClick={() => void logout()}>
               Sign out
-            </button>
+            </Button>
           </div>
         ) : (
-          <Link to="/login" className="text-sm font-medium underline">
-            Sign in
-          </Link>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/login">Sign in</Link>
+          </Button>
         )}
       </div>
     </header>
@@ -52,11 +49,11 @@ function Header() {
 
 function NotFound() {
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Not found</h1>
-      <Link to="/" className="mt-4 inline-block text-sm underline">
-        Back home
-      </Link>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold tracking-tight">Not found</h1>
+      <Button variant="outline" asChild>
+        <Link to="/">Back home</Link>
+      </Button>
     </div>
   );
 }
