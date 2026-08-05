@@ -8,16 +8,15 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
+  "//": "Build tools sit in dependencies, not devDependencies, deliberately. Vercel installed only 409 of 505 packages and dropped exactly this workspace's devDependencies, and neither .npmrc include=dev nor an explicit npm ci --include=dev changed that count. This is a static build, so nothing here reaches a runtime and the cost is install size only. Recorded in DECISIONS.md.",
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3",
     "vite": "^6.0.7"
