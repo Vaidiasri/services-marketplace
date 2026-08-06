@@ -26,6 +26,16 @@ export type Me = {
 };
 
 type AuthValue = {
+  /**
+   * True once the boot refresh has settled, either way.
+   *
+   * Exported because every AUTHENTICATED query must wait for it. The access token lives in
+   * memory only, so a hard load or a pasted URL starts with none - a query that fires
+   * immediately races the refresh and 401s while the session is in fact valid. That is
+   * exactly what happened on /vendor/bookings: the header rendered the signed-in vendor
+   * because /me waited, while the bookings list showed "Authentication required".
+   */
+  booted: boolean;
   me: Me | null;
   isLoading: boolean;
   error: ApiError | null;
@@ -91,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       me: query.data ?? null,
       // Signed out is a settled state, not a loading one. Without the hasToken clause
       // a disabled query reports isLoading forever and the app never renders.
+      booted,
       isLoading: !booted || (hasToken && query.isLoading),
       error: (query.error as ApiError | null) ?? null,
       logout,
