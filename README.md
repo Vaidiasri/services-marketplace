@@ -5,10 +5,12 @@ their calendar, admins approve vendors and police the catalogue. Real authentica
 data-driven permissions, real booking rules, mocked money.
 
 > **Scope, stated plainly.** The API implements all of this and is covered by 404 assertions.
-> The **web app currently covers authentication only** - sign-up, sign-in and the session
-> shell. Browsing, booking and the vendor and admin consoles are exercised through the API and
-> its test suites, not yet through the UI. Everything below that describes an endpoint is real
-> and callable; nothing here describes a screen that does not exist.
+> The **web app covers the customer journey end to end** - browse, filter, pick a slot, book,
+> pay, view the status timeline, cancel - plus the vendor booking queue and the admin vendor
+> approval queue. What it does **not** have a screen for yet: vendor service and availability
+> editing, category management, and the roles-and-permissions console. Those are fully
+> implemented and tested in the API; they are simply driven by curl rather than by a form.
+> Nothing described below is a screen that does not exist.
 
 | | |
 | --- | --- |
@@ -18,6 +20,17 @@ data-driven permissions, real booking rules, mocked money.
 
 > The API is on Render's free tier and sleeps after inactivity. The first request can take
 > **30-50 seconds** to wake it. `/health` is the cheapest way to wake it before a walkthrough.
+
+## What to look at first
+
+1. **<https://services-marketplace.vercel.app/services>** - the catalogue. Search, filter by
+   category, set a price ceiling, page through. All server-side.
+2. Open a service, pick a slot, and book as `customer1@marketplace.test`. Choose **Pay now**
+   and the *card that is declined* to watch the booking cancel and its slot come back.
+3. Sign in as `vendor@marketplace.test` and confirm or decline it from the booking queue.
+4. Sign in as `moderator@marketplace.test` and go to `/admin/vendors`. The link is not in the
+   navigation, and typing the URL is refused by the server - that is the permission model, not
+   a client-side check.
 
 ## Seeded accounts
 
@@ -174,7 +187,8 @@ server/          NestJS 10, Prisma 6, PostgreSQL
   src/availability/  rules, exceptions, the pure slot generator
   src/bookings/      state machine, capacity locking, cancellation policy
 client/          React 18, Vite, Tailwind, shadcn/ui, TanStack Query, axios
-                 (auth screens only so far - see the scope note at the top)
+  src/routes/        catalogue, service detail + slot picker, bookings,
+                     vendor queue, admin approvals - see the scope note at the top
 doc/             The plan this was built from, module by module
 ```
 
