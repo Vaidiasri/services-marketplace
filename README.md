@@ -4,7 +4,7 @@ A three-sided booking marketplace: customers browse and book, vendors list servi
 their calendar, admins approve vendors and police the catalogue. Real authentication, real
 data-driven permissions, real booking rules, mocked money.
 
-> **Scope, stated plainly.** The API implements all of this and is covered by 404 assertions.
+> **Scope, stated plainly.** The API implements all of this and is covered by 472 assertions.
 > The **web app covers the customer journey end to end** - browse, filter, pick a slot, book,
 > pay, view the status timeline, cancel - plus the vendor booking queue and the admin vendor
 > approval queue. What it does **not** have a screen for yet: vendor service and availability
@@ -76,12 +76,16 @@ Then edit `server/.env`:
 | Variable | Required | Notes |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Use the **pooled** Neon endpoint. Keep `connection_limit=25&pool_timeout=20` - see the note below |
-| `JWT_ACCESS_SECRET` | yes | Any long random string |
-| `JWT_REFRESH_SECRET` | yes | A **different** long random string |
-| `CLIENT_ORIGIN` | yes | `http://localhost:5173` locally; comma-separated list in production |
-| `PORT` | no | Defaults to 3000 |
+| `JWT_ACCESS_SECRET` | yes | 32+ characters. The API refuses to boot without it - there is deliberately no fallback, because a default would mean a deployment missing the variable silently signs tokens anyone can forge |
+| `CLIENT_ORIGIN` | yes | `http://localhost:5173` locally; comma-separated in production. One `*` per entry matches a single DNS label, so `https://*.vercel.app` survives Vercel minting a new hostname |
+| `PORT` | no | Render injects it; only needed locally |
 | `UPLOAD_DIR` | no | Defaults to `uploads/vendor-documents` |
+| `MOCK_WEBHOOK_SECRET` | no | Signs mock payment webhooks. Set it anywhere internet-reachable - the signature is the authentication |
 | `SEED_PASSWORD` | no | Defaults to `TestPass!2026` |
+
+> **There is no `JWT_REFRESH_SECRET`.** Refresh tokens are 32 random bytes stored as a
+> SHA-256 hash, not signed JWTs, so revoking one is a database update rather than a denylist -
+> which is what makes logout actually invalidate it server-side.
 
 > **`connection_limit` is load-bearing.** Every booking transaction holds a connection while it
 > queues for a row lock, so a limit of 10 makes `scripts/race.ts` fail with Prisma `P2024`
@@ -130,8 +134,11 @@ cd server
 npm test
 ```
 
-Runs route coverage, four unit suites and seven integration suites against a live API -
-**404 assertions**. The integration suites need the server running and the database seeded.
+Runs route coverage, four unit suites and eight integration suites against a live API.
+The integration suites need the server running and the database seeded.
+
+The client has its own suite - `npm test --workspace=client` - covering the refresh
+single-flight, which is the piece most likely to log a user out mid-task if it regresses.
 
 | Command | What it covers |
 | --- | --- |
@@ -140,6 +147,7 @@ Runs route coverage, four unit suites and seven integration suites against a liv
 | `npm run test:slots` | The slot generator against fixtures, no database |
 | `npm run test:bookings` | The state machine over all 108 `(from, to, actor)` triples, and the cancellation policy |
 | `npm run race` | **The concurrency proof.** 20 simultaneous bookings at a capacity-3 slot |
+| `npx ts-node scripts/clean-test-data.ts --dry-run` | Lists the throwaway accounts the suites leave behind, without deleting them |
 
 ### Payments are mocked, and every outcome is triggerable
 
