@@ -49,6 +49,15 @@ export type Slot = {
 };
 
 /**
+ * One grid cell a booking would occupy, with the capacity that cell is entitled to.
+ *
+ * M6 needs this and cannot use `Slot.capacity`, which is the MINIMUM across the cells - the
+ * right number to advertise, but writing it to every cell would understate the capacity of
+ * the roomier ones and wrongly constrain other bookings. So the plan is exposed per cell.
+ */
+export type PlannedCell = { startUtc: Date; capacity: number };
+
+/**
  * An OPEN_WINDOW exception opens a day that has no rule behind it, so there is no rule
  * capacity to inherit. One is the conservative default: a vendor who wants more says so.
  * The plan left this undefined.
@@ -56,6 +65,27 @@ export type Slot = {
 export const DEFAULT_OPEN_WINDOW_CAPACITY = 1;
 
 export function generateSlots(input: GenerateInput): Slot[] {
+  return enumerate(input).map((e) => e.slot);
+}
+
+/**
+ * The cells a booking at `startUtc` would occupy, or null if that instant is not a real
+ * derived slot start with room in it.
+ *
+ * This is how M6 validates a requested start AND gets its cell plan in one step, from the
+ * same code path that produced the slot list the customer was shown. A separate
+ * "is this a valid start" check would be a second implementation of the grid, and the two
+ * would drift - at which point a client could book a time that was never offered.
+ */
+export function planBookingCells(
+  input: GenerateInput,
+  startUtc: Date,
+): PlannedCell[] | null {
+  const iso = startUtc.toISOString();
+  return enumerate(input).find((e) => e.slot.startUtc === iso)?.cells ?? null;
+}
+
+function enumerate(input: GenerateInput): { slot: Slot; cells: PlannedCell[] }[] {
   const {
     timezone,
     granularityMinutes: g,
@@ -81,7 +111,7 @@ export function generateSlots(input: GenerateInput): Slot[] {
     rulesByWeekday.set(rule.weekday, list);
   }
 
-  const slots: Slot[] = [];
+  const found: { slot: Slot; cells: PlannedCell[] }[] = [];
 
   for (const date of eachLocalDate(from, to, timezone)) {
     // Closures win over everything, including an OPEN_WINDOW on the same date. A vendor
@@ -102,11 +132,10 @@ export function generateSlots(input: GenerateInput): Slot[] {
 
     const cellCapacity = layGrid(windows, g);
 
-    for (const [startMinute, capacity] of [...cellCapacity].sort((a, b) => a[0] - b[0])) {
-      const slot = buildSlot({
+    for (const [startMinute] of [...cellCapacity].sort((a, b) => a[0] - b[0])) {
+      const built = buildSlot({
         date,
         startMinute,
-        capacity,
         cellsNeeded,
         g,
         durationMinutes,
@@ -115,11 +144,11 @@ export function generateSlots(input: GenerateInput): Slot[] {
         consumption,
         now,
       });
-      if (slot) slots.push(slot);
+      if (built) found.push(built);
     }
   }
 
-  return slots.sort((a, b) => a.startUtc.localeCompare(b.startUtc));
+  return found.sort((a, b) => a.slot.startUtc.localeCompare(b.slot.startUtc));
 }
 
 /**
@@ -159,7 +188,6 @@ function layGrid(
 function buildSlot(args: {
   date: string;
   startMinute: number;
-  capacity: number;
   cellsNeeded: number;
   g: number;
   durationMinutes: number;
@@ -167,7 +195,7 @@ function buildSlot(args: {
   cellCapacity: Map<number, number>;
   consumption: Map<string, CellConsumption>;
   now: Date;
-}): Slot | null {
+}): { slot: Slot; cells: PlannedCell[] } | null {
   const {
     date,
     startMinute,
@@ -183,6 +211,7 @@ function buildSlot(args: {
   let capacity = Number.POSITIVE_INFINITY;
   let remaining = Number.POSITIVE_INFINITY;
   let startUtc: Date | null = null;
+  const cells: PlannedCell[] = [];
 
   for (let i = 0; i < cellsNeeded; i++) {
     const minute = startMinute + i * g;
@@ -208,6 +237,10 @@ function buildSlot(args: {
     // as many times as its tightest cell allows.
     capacity = Math.min(capacity, cellCap);
     remaining = Math.min(remaining, cellFree);
+
+    // The per-cell entitlement, NOT the slot minimum. M6 writes this when it creates the
+    // row, so a roomier cell keeps its own capacity for other bookings.
+    cells.push({ startUtc: cellUtc, capacity: declared });
   }
 
   if (!startUtc) return null;
@@ -219,9 +252,12 @@ function buildSlot(args: {
   // minutes - so the end is the start plus that span. Local wall-clock arithmetic here
   // would be wrong across a fall-back hour, where local 01:00-02:00 spans two real hours.
   return {
-    startUtc: startUtc.toISOString(),
-    endUtc: new Date(startUtc.getTime() + durationMinutes * 60_000).toISOString(),
-    capacity,
-    remainingCapacity: remaining,
+    slot: {
+      startUtc: startUtc.toISOString(),
+      endUtc: new Date(startUtc.getTime() + durationMinutes * 60_000).toISOString(),
+      capacity,
+      remainingCapacity: remaining,
+    },
+    cells,
   };
 }

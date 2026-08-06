@@ -130,6 +130,23 @@ export const Errors = {
       'That service has upcoming bookings, so it cannot be withdrawn.',
       { bookingCount },
     ),
+  // 409 - the clean refusal the brief requires when a seat is gone.
+  slotFull: () =>
+    new AppError('SLOT_FULL', HttpStatus.CONFLICT, 'That slot has just been taken.'),
+  // A waiter that timed out behind another transaction's lock. Distinct from SLOT_FULL: the
+  // seat may still be free, the caller simply could not get in to check.
+  slotContended: () =>
+    new AppError(
+      'SLOT_CONTENDED',
+      HttpStatus.CONFLICT,
+      'That slot is being booked right now. Try again.',
+    ),
+  idempotencyKeyReused: () =>
+    new AppError(
+      'IDEMPOTENCY_KEY_REUSED',
+      HttpStatus.CONFLICT,
+      'That Idempotency-Key was already used with a different request body.',
+    ),
   wouldOrphanPublishedService: () =>
     new AppError(
       'WOULD_ORPHAN_PUBLISHED_SERVICE',
@@ -207,6 +224,48 @@ export const Errors = {
       'Existing offerings do not divide evenly into that slot size.',
       { offeringIds, granularityMinutes },
     ),
+  // 400 rather than 422: the header is missing entirely, so there is no body to fault.
+  idempotencyKeyRequired: () =>
+    new AppError(
+      'IDEMPOTENCY_KEY_REQUIRED',
+      HttpStatus.BAD_REQUEST,
+      'This request needs an Idempotency-Key header.',
+    ),
+
+  illegalTransition: (from: string, to: string, allowed: string[]) =>
+    new AppError(
+      'ILLEGAL_TRANSITION',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      `A ${from} booking cannot become ${to}.`,
+      { from, to, allowed },
+    ),
+  invalidSlot: () =>
+    new AppError(
+      'INVALID_SLOT',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'That start time is not an available slot for this offering.',
+    ),
+  slotInPast: () =>
+    new AppError('SLOT_IN_PAST', HttpStatus.UNPROCESSABLE_ENTITY, 'That slot has already started.'),
+  paymentRequired: () =>
+    new AppError(
+      'PAYMENT_REQUIRED',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Payment has not succeeded for this booking yet.',
+    ),
+  tooEarlyToComplete: () =>
+    new AppError(
+      'TOO_EARLY_TO_COMPLETE',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'The appointment has not finished yet.',
+    ),
+  tooEarlyForNoShow: () =>
+    new AppError(
+      'TOO_EARLY_FOR_NO_SHOW',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'The appointment has not started yet.',
+    ),
+
   invalidWindow: (detail: string) =>
     new AppError('INVALID_WINDOW', HttpStatus.UNPROCESSABLE_ENTITY, detail),
   dateInPast: (date: string) =>

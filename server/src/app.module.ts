@@ -4,6 +4,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { AvailabilityModule } from './availability/availability.module';
+import { BookingsModule } from './bookings/bookings.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { RequestScopeMiddleware } from './common/request-scope.middleware';
@@ -22,6 +23,7 @@ import { VendorsModule } from './vendors/vendors.module';
     VendorsModule,
     CatalogModule,
     AvailabilityModule,
+    BookingsModule,
     ThrottlerModule.forRoot([{ name: 'default', limit: 120, ttl: 60_000 }]),
   ],
   controllers: [HealthController],

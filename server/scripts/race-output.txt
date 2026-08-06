@@ -1,0 +1,22 @@
+race: 20 concurrent bookings at a capacity-3 slot
+api:  http://localhost:3000
+
+target slot: 2026-08-09T03:30:00.000Z  capacity 3
+
+5 customers registered, firing 20 bookings across them
+
+created=3 conflicted=17 other=0  (19740 ms)
+   3 x 201 CREATED
+  17 x 409 SLOT_FULL
+
+SlotCell: capacity=3 bookedCount=3
+Booking rows for that slot: 3
+
+PASS  exactly 3 bookings created
+PASS  the other 17 refused
+PASS  every refusal is a clean 409 SLOT_FULL
+PASS  no request produced a 500 or any other status
+PASS  SlotCell.bookedCount is exactly 3
+PASS  exactly 3 Booking rows exist for the slot
+
+RESULT: capacity held.

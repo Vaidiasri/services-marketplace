@@ -469,7 +469,19 @@ const EVERY_DAY_9_TO_1 = (capacity) =>
   r = await call(`/services/${svc}/slots/next-available?offeringId=${offering}`);
   ok(r.status === 200 && !!r.body?.slot, 'next-available returns a slot', JSON.stringify(r.body?.slot));
   ok(new Date(r.body.slot.startUtc) > new Date(), 'which is in the future');
-  ok(at(r.body.slot) === '09:00', 'and is the first opening of the soonest open day', at(r.body.slot));
+
+  // Compared against the slots endpoint rather than a hard-coded 09:00. An earlier version
+  // asserted the literal time and passed only when the suite ran before 09:00 IST - after
+  // that, today's first FUTURE slot is 09:30 and the test failed on correct code. Asserting
+  // the two endpoints agree is both time-independent and a stronger claim.
+  const soonest = (
+    await call(`/services/${svc}/slots?offeringId=${offering}&from=${localDate(0)}&to=${localDate(3)}`)
+  ).body.slots[0];
+  ok(
+    r.body.slot.startUtc === soonest.startUtc,
+    'and it is exactly the first slot the slots endpoint offers',
+    `${r.body.slot.startUtc} vs ${soonest.startUtc}`,
+  );
 
   r = await call(`/services/${svc}/slots/next-available`);
   ok(r.status === 422, 'next-available without an offering -> 422', r.status);

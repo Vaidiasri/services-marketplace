@@ -9,11 +9,13 @@
     "prisma:generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "test": "npm run test:routes && npm run test:guard && npm run test:time && npm run test:slots && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs && node test/catalog.integration.mjs && node test/availability.integration.mjs",
+    "test": "npm run test:routes && npm run test:guard && npm run test:time && npm run test:slots && npm run test:bookings && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs && node test/catalog.integration.mjs && node test/availability.integration.mjs && node test/bookings.integration.mjs",
     "test:routes": "ts-node test/route-coverage.ts",
     "test:guard": "ts-node test/approved-vendor-guard.ts",
     "test:time": "ts-node test/time.unit.ts",
     "test:slots": "ts-node test/slot-generator.unit.ts",
+    "test:bookings": "ts-node test/bookings.unit.ts",
+    "race": "ts-node scripts/race.ts",
     "test:seed-admins": "node test/make-admins.mjs"
   },
   "prisma": {
