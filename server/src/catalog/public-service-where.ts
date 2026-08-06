@@ -1,4 +1,7 @@
 import type { Prisma } from '@prisma/client';
+import type { Caller } from '../auth/jwt-auth.guard';
+import type { PermissionResolver } from '../rbac/permission-resolver.service';
+import { SUPER_ADMIN } from '../rbac/permission-resolver.service';
 
 /**
  * THE definition of "a customer may see this service". Every public read path composes
@@ -38,4 +41,27 @@ export function isPubliclyVisible(service: {
     service.vendorProfile.status ===
       (w.vendorProfile as { status: string }).status
   );
+}
+
+/**
+ * Whether a caller may see a service that is NOT publicly visible - its owner, or an admin
+ * holding `service.read_all`.
+ *
+ * Lives here beside the visibility rule because it is the other half of the same decision,
+ * and because the catalogue, offerings and availability modules all need it. Written out
+ * three times it would eventually be three slightly different answers to one question.
+ *
+ * Not a guard: it does not decide whether the route runs, only whether a hidden row is
+ * visible through it, and the answer must be 404 rather than 403 - a 403 would confirm the
+ * id exists.
+ */
+export async function canSeeHiddenService(
+  ownerUserId: string,
+  caller: Caller | undefined,
+  permissions: PermissionResolver,
+): Promise<boolean> {
+  if (!caller) return false;
+  if (caller.userId === ownerUserId) return true;
+  if (caller.roleSlug === SUPER_ADMIN) return true;
+  return (await permissions.getEffectiveSlugs(caller.userId)).includes('service.read_all');
 }

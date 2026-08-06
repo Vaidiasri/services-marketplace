@@ -3,8 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Errors } from '../common/errors';
 import type { Caller } from '../auth/jwt-auth.guard';
-import { PermissionResolver, SUPER_ADMIN } from '../rbac/permission-resolver.service';
-import { isPubliclyVisible } from './public-service-where';
+import { PermissionResolver } from '../rbac/permission-resolver.service';
+import { canSeeHiddenService, isPubliclyVisible } from './public-service-where';
 import type { CreateOfferingDto, UpdateOfferingDto } from './catalog.dto';
 
 const OFFERING_SELECT = {
@@ -40,7 +40,11 @@ export class OfferingsService {
     });
     if (!service) throw Errors.notFound('Service');
 
-    const privileged = caller ? await this.isPrivileged(service.vendorProfile.userId, caller) : false;
+    const privileged = await canSeeHiddenService(
+      service.vendorProfile.userId,
+      caller,
+      this.permissions,
+    );
 
     // 404 rather than an empty list: an unpublished service's offerings are as private as
     // the service itself, and an empty array would confirm the id exists.
@@ -103,13 +107,6 @@ export class OfferingsService {
     if (durationMinutes % granularityMinutes !== 0) {
       throw Errors.durationNotAligned(granularityMinutes);
     }
-  }
-
-  private async isPrivileged(ownerUserId: string, caller: Caller): Promise<boolean> {
-    if (caller.userId === ownerUserId) return true;
-    if (caller.roleSlug === SUPER_ADMIN) return true;
-    const slugs = await this.permissions.getEffectiveSlugs(caller.userId);
-    return slugs.includes('service.read_all');
   }
 
   private async requireOwnedService(vendorProfileId: string, serviceId: string) {

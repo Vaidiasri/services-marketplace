@@ -4,8 +4,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Errors } from '../common/errors';
 import { paginated, toSkipTake, type Paginated } from '../common/pagination';
 import type { Caller } from '../auth/jwt-auth.guard';
-import { PermissionResolver, SUPER_ADMIN } from '../rbac/permission-resolver.service';
-import { isPubliclyVisible, publicServiceWhere } from './public-service-where';
+import { PermissionResolver } from '../rbac/permission-resolver.service';
+import {
+  canSeeHiddenService,
+  isPubliclyVisible,
+  publicServiceWhere,
+} from './public-service-where';
 import type {
   AdminServiceQuery,
   CreateServiceDto,
@@ -125,14 +129,12 @@ export class ServicesService {
 
     if (isPubliclyVisible(service)) return narrow(service, false);
 
-    if (!caller) throw Errors.notFound('Service');
-
-    const isOwner = service.vendorProfile.userId === caller.userId;
-    const isSuper = caller.roleSlug === SUPER_ADMIN;
-    const canReadAll =
-      isSuper || (await this.permissions.getEffectiveSlugs(caller.userId)).includes('service.read_all');
-
-    if (!isOwner && !canReadAll) throw Errors.notFound('Service');
+    const privileged = await canSeeHiddenService(
+      service.vendorProfile.userId,
+      caller,
+      this.permissions,
+    );
+    if (!privileged) throw Errors.notFound('Service');
     return narrow(service, true);
   }
 

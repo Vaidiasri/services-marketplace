@@ -130,6 +130,12 @@ export const Errors = {
       'That service has upcoming bookings, so it cannot be withdrawn.',
       { bookingCount },
     ),
+  wouldOrphanPublishedService: () =>
+    new AppError(
+      'WOULD_ORPHAN_PUBLISHED_SERVICE',
+      HttpStatus.CONFLICT,
+      'A published service must keep at least one availability rule. Unpublish it first.',
+    ),
   lastSuperAdmin: () =>
     new AppError(
       'LAST_SUPER_ADMIN',
@@ -200,6 +206,28 @@ export const Errors = {
       HttpStatus.UNPROCESSABLE_ENTITY,
       'Existing offerings do not divide evenly into that slot size.',
       { offeringIds, granularityMinutes },
+    ),
+  invalidWindow: (detail: string) =>
+    new AppError('INVALID_WINDOW', HttpStatus.UNPROCESSABLE_ENTITY, detail),
+  dateInPast: (date: string) =>
+    new AppError(
+      'DATE_IN_PAST',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'That date has already passed in the vendor\'s timezone.',
+      { date },
+    ),
+  offeringRequired: () =>
+    new AppError(
+      'OFFERING_REQUIRED',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Slots depend on how long the appointment is, so an offeringId is required.',
+    ),
+  rangeTooLarge: (maxDays: number) =>
+    new AppError(
+      'RANGE_TOO_LARGE',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      `Ask for at most ${maxDays} days at a time.`,
+      { maxDays },
     ),
   unknownPermissions: (slugs: string[]) =>
     new AppError(

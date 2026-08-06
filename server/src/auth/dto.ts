@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isIanaTimezone } from '../common/time';
 
 /**
  * Every schema is `.strict()`. An unexpected key is a 422 rather than being ignored,
@@ -44,11 +45,12 @@ export type RegisterCustomerDto = z.infer<typeof RegisterCustomerSchema>;
 export type RegisterVendorDto = z.infer<typeof RegisterVendorSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;
 
-export function isIanaTimezone(value: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
-}
+/**
+ * Re-exported from common/time.ts, which is the one file allowed to reason about zones.
+ *
+ * The previous implementation here only asked whether Intl would accept the string, which
+ * accepts the abbreviation `EST` - resolved by ICU to a fixed UTC-5 zone that never
+ * observes daylight saving. See the note on isIanaTimezone for why that is a silent
+ * hour-wrong-for-eight-months bug rather than a cosmetic validation gap.
+ */
+export { isIanaTimezone };

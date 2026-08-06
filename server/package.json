@@ -9,9 +9,11 @@
     "prisma:generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "test": "npm run test:routes && npm run test:guard && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs && node test/catalog.integration.mjs",
+    "test": "npm run test:routes && npm run test:guard && npm run test:time && npm run test:slots && node test/auth.integration.mjs && node test/rbac.integration.mjs && node test/vendors.integration.mjs && node test/uploads.integration.mjs && node test/catalog.integration.mjs && node test/availability.integration.mjs",
     "test:routes": "ts-node test/route-coverage.ts",
     "test:guard": "ts-node test/approved-vendor-guard.ts",
+    "test:time": "ts-node test/time.unit.ts",
+    "test:slots": "ts-node test/slot-generator.unit.ts",
     "test:seed-admins": "node test/make-admins.mjs"
   },
   "prisma": {
@@ -27,6 +29,7 @@
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",
+    "luxon": "^3.7.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^3.25.76"
@@ -36,6 +39,7 @@
     "@nestjs/schematics": "^10.2.3",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
+    "@types/luxon": "^3.7.3",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "prisma": "^6.2.1",
