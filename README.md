@@ -14,7 +14,7 @@ data-driven permissions, real booking rules, mocked money.
 
 | | |
 | --- | --- |
-| **Web app** | <https://services-marketplace.vercel.app> |
+| **Web app** | <https://services-marketplace-server.vercel.app> |
 | **API** | <https://services-marketplace-bdf2.onrender.com> |
 | **API health** | <https://services-marketplace-bdf2.onrender.com/health> |
 
@@ -23,7 +23,7 @@ data-driven permissions, real booking rules, mocked money.
 
 ## What to look at first
 
-1. **<https://services-marketplace.vercel.app/services>** - the catalogue. Search, filter by
+1. **<https://services-marketplace-server.vercel.app/services>** - the catalogue. Search, filter by
    category, set a price ceiling, page through. All server-side.
 2. Open a service, pick a slot, and book as `customer1@marketplace.test`. Choose **Pay now**
    and the *card that is declined* to watch the booking cancel and its slot come back.
