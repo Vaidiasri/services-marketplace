@@ -1,0 +1,4770 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Services Marketplace API",
+    "version": "1.0.0",
+    "description": "Generated from the running application - paths from the Nest router, request\nbodies and query parameters from the Zod schemas the server validates with, and\nthe required permission from the decorator the guard reads. Regenerate with\n`npm run openapi --workspace=server`.\n\n**Authentication.** `POST /auth/login` returns a short-lived access token in the body\nand sets an httpOnly refresh cookie. Send the access token as `Authorization: Bearer\n<token>`. Every seeded account uses the password in the README.\n\n**Errors.** Every non-2xx response is `{ error: { code, message, details?, requestId } }`.\nThe `code` is stable and machine-readable; the HTTP status says what kind of failure it\nis. A refusal by permission is 403, an illegal state transition is 422, and a full slot\nis 409 - three different problems that a single 400 would flatten."
+  },
+  "servers": [
+    {
+      "url": "https://services-marketplace-bdf2.onrender.com",
+      "description": "Deployed API (free tier - the first request may take 30-50s to wake it)"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "requestId"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "FORBIDDEN"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {},
+              "requestId": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/admin/bookings": {
+      "get": {
+        "tags": [
+          "Admin Bookings"
+        ],
+        "summary": "AdminBookingsController.list",
+        "description": "Requires `booking.read_all`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminBookingsController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "COMPLETED",
+                "REJECTED",
+                "CANCELLED",
+                "NO_SHOW"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "vendorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[cC][^\\s-]{8,}$"
+            }
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[cC][^\\s-]{8,}$"
+            }
+          }
+        ]
+      }
+    },
+    "/admin/bookings/{id}/force-cancel": {
+      "patch": {
+        "tags": [
+          "Admin Bookings"
+        ],
+        "summary": "AdminBookingsController.forceCancel",
+        "description": "Requires `booking.force_cancel`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminBookingsController_forceCancel",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/services": {
+      "get": {
+        "tags": [
+          "Admin Services"
+        ],
+        "summary": "AdminServicesController.list",
+        "description": "Requires `service.read_all`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminServicesController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "SUSPENDED"
+              ]
+            }
+          },
+          {
+            "name": "vendorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[cC][^\\s-]{8,}$"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          }
+        ]
+      }
+    },
+    "/admin/services/{id}/suspend": {
+      "post": {
+        "tags": [
+          "Admin Services"
+        ],
+        "summary": "AdminServicesController.suspend",
+        "description": "Requires `service.suspend`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminServicesController_suspend",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/services/{id}/unsuspend": {
+      "post": {
+        "tags": [
+          "Admin Services"
+        ],
+        "summary": "AdminServicesController.unsuspend",
+        "description": "Requires `service.suspend`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminServicesController_unsuspend",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/admin/vendors": {
+      "get": {
+        "tags": [
+          "Admin Vendors"
+        ],
+        "summary": "AdminVendorsController.list",
+        "description": "Requires `vendor.read_all`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminVendorsController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          }
+        ]
+      }
+    },
+    "/admin/vendors/{id}": {
+      "get": {
+        "tags": [
+          "Admin Vendors"
+        ],
+        "summary": "AdminVendorsController.get",
+        "description": "Requires `vendor.read_all`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminVendorsController_get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/admin/vendors/{id}/approve": {
+      "patch": {
+        "tags": [
+          "Admin Vendors"
+        ],
+        "summary": "AdminVendorsController.approve",
+        "description": "Requires `vendor.approve`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminVendorsController_approve",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/admin/vendors/{id}/documents/{docId}/download": {
+      "get": {
+        "tags": [
+          "Admin Vendors"
+        ],
+        "summary": "AdminVendorsController.download",
+        "description": "Requires `vendor.read_all`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminVendorsController_download",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/admin/vendors/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Admin Vendors"
+        ],
+        "summary": "AdminVendorsController.reject",
+        "description": "Requires `vendor.reject`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AdminVendorsController_reject",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "AuthController.login",
+        "description": "Public - no token required.",
+        "operationId": "AuthController_login",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "AuthController.logout",
+        "description": "Public - no token required.",
+        "operationId": "AuthController_logout",
+        "responses": {
+          "204": {
+            "description": "Success"
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "AuthController.refresh",
+        "description": "Public - no token required.",
+        "operationId": "AuthController_refresh",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "REFRESH_INVALID - no refresh cookie, or one already rotated or revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/register/customer": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "AuthController.registerCustomer",
+        "description": "Public - no token required.",
+        "operationId": "AuthController_registerCustomer",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "fullName"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register/vendor": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "AuthController.registerVendor",
+        "description": "Public - no token required.",
+        "operationId": "AuthController_registerVendor",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "businessName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "contactName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "contactPhone": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 32
+                  },
+                  "addressLine1": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "addressLine2": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "timezone": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "fullName",
+                  "businessName",
+                  "contactName",
+                  "contactPhone",
+                  "addressLine1",
+                  "city",
+                  "state",
+                  "postalCode",
+                  "timezone"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.list",
+        "description": "Requires `booking.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "COMPLETED",
+                "REJECTED",
+                "CANCELLED",
+                "NO_SHOW"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.create",
+        "description": "Requires `booking.create`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_create",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "IDEMPOTENCY_KEY_REQUIRED - the header is absent. 400 rather than 422 because there is no body field to fault",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "IDEMPOTENCY_KEY_REUSED - the same key arrived with a different request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Any unique string. Replaying the same key with the same body replays the stored response instead of performing the effect twice; the same key with a different body is a 409."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string",
+                    "pattern": "^[cC][^\\s-]{8,}$"
+                  },
+                  "offeringId": {
+                    "type": "string",
+                    "pattern": "^[cC][^\\s-]{8,}$"
+                  },
+                  "startUtc": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "paymentMode": {
+                    "type": "string",
+                    "enum": [
+                      "PAY_NOW",
+                      "PAY_AFTER"
+                    ]
+                  }
+                },
+                "required": [
+                  "serviceId",
+                  "offeringId",
+                  "startUtc",
+                  "paymentMode"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.get",
+        "description": "Requires `booking.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.cancel",
+        "description": "Requires `booking.cancel`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_cancel",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{id}/complete": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.complete",
+        "description": "Requires `booking.complete`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_complete",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/confirm": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.confirm",
+        "description": "Requires `booking.confirm`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_confirm",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/mark-collected": {
+      "patch": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "PaymentsController.markCollected",
+        "description": "Requires `payment.mark_collected`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "PaymentsController_markCollected",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/no-show": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.noShow",
+        "description": "Requires `booking.no_show`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_noShow",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{id}/payments": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "PaymentsController.forBooking",
+        "description": "Requires `payment.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "PaymentsController_forBooking",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/bookings/{id}/reject": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.reject",
+        "description": "Requires `booking.reject`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_reject",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{id}/reschedule": {
+      "patch": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "BookingsController.reschedule",
+        "description": "Requires `booking.reschedule`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "BookingsController_reschedule",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startUtc": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "startUtc"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "CategoriesController.list",
+        "description": "Public - no token required.",
+        "operationId": "CategoriesController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "flat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "true"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "false"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    ""
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "CategoriesController.create",
+        "description": "Requires `category.create`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "CategoriesController_create",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "pattern": "^[cC][^\\s-]{8,}$"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9999
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories/{id}": {
+      "delete": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "CategoriesController.remove",
+        "description": "Requires `category.delete`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "CategoriesController_remove",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "CategoriesController.update",
+        "description": "Requires `category.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "CategoriesController_update",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  },
+                  "sortOrder": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9999
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "HealthController.check",
+        "description": "Public - no token required.",
+        "operationId": "HealthController_check",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        },
+        "security": []
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "AuthController.me",
+        "description": "Requires a valid access token. No additional permission.",
+        "operationId": "AuthController_me",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/offerings/{id}": {
+      "delete": {
+        "tags": [
+          "Offerings"
+        ],
+        "summary": "OfferingsController.remove",
+        "description": "Requires `offering.delete`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "OfferingsController_remove",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Offerings"
+        ],
+        "summary": "OfferingsController.update",
+        "description": "Requires `offering.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "OfferingsController_update",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 1440
+                  },
+                  "priceMinor": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{id}": {
+      "get": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "PaymentsController.get",
+        "description": "Requires `payment.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "PaymentsController_get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/payments/{id}/confirm": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "PaymentsController.confirm",
+        "description": "Requires `payment.initiate`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "PaymentsController_confirm",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "IDEMPOTENCY_KEY_REQUIRED - the header is absent. 400 rather than 422 because there is no body field to fault",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "IDEMPOTENCY_KEY_REUSED - the same key arrived with a different request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Any unique string. Replaying the same key with the same body replays the stored response instead of performing the effect twice; the same key with a different body is a 409."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "default": "tok_success"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/bookings/{id}/refund": {
+      "post": {
+        "tags": [
+          "Payments"
+        ],
+        "summary": "PaymentsController.refund",
+        "description": "Requires `payment.refund`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "PaymentsController_refund",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amountMinor": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/webhook": {
+      "post": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "WebhookController.webhook",
+        "description": "Public - no token required.",
+        "operationId": "WebhookController_webhook",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "The HMAC signature is missing or does not match the raw body. The signature is the authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The raw body was unavailable or the payload is malformed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "x-mock-signature",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/permissions": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.listPermissions",
+        "description": "Requires `permission.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_listPermissions",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.list",
+        "description": "Requires `role.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.create",
+        "description": "Requires `role.create`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_create",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z][A-Z0-9_]*$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "permissionSlugs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  }
+                },
+                "required": [
+                  "slug",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles/{id}": {
+      "delete": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.remove",
+        "description": "Requires `role.delete`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_remove",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.get",
+        "description": "Requires `role.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.update",
+        "description": "Requires `role.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_update",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "permissionSlugs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles/{id}/permissions/{slug}": {
+      "delete": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.revoke",
+        "description": "Requires `role.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_revoke",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/services": {
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "ServicesController.list",
+        "description": "Public - no token required.",
+        "operationId": "ServicesController_list",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[cC][^\\s-]{8,}$"
+            }
+          },
+          {
+            "name": "minPriceMinor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxPriceMinor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "createdAt",
+                "title"
+              ],
+              "default": "createdAt"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            }
+          }
+        ],
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Vendor Services"
+        ],
+        "summary": "VendorServicesController.create",
+        "description": "Requires `service.create`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorServicesController_create",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 160
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 4000
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "pattern": "^[cC][^\\s-]{8,}$"
+                  },
+                  "slotGranularityMinutes": {
+                    "type": "integer"
+                  },
+                  "freeCancellationHours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "cancellationFeePercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "title",
+                  "description",
+                  "categoryId",
+                  "freeCancellationHours",
+                  "cancellationFeePercent"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{id}": {
+      "delete": {
+        "tags": [
+          "Vendor Services"
+        ],
+        "summary": "VendorServicesController.remove",
+        "description": "Requires `service.delete`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorServicesController_remove",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "ServicesController.get",
+        "description": "Public - no token required.",
+        "operationId": "ServicesController_get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": []
+      },
+      "patch": {
+        "tags": [
+          "Vendor Services"
+        ],
+        "summary": "VendorServicesController.update",
+        "description": "Requires `service.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorServicesController_update",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 160
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 4000
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "pattern": "^[cC][^\\s-]{8,}$"
+                  },
+                  "slotGranularityMinutes": {
+                    "type": "integer"
+                  },
+                  "freeCancellationHours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "cancellationFeePercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{id}/availability/exceptions": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.listExceptions",
+        "description": "Public - no token required.",
+        "operationId": "AvailabilityController_listExceptions",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          }
+        ],
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.addException",
+        "description": "Requires `availability.manage`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AvailabilityController_addException",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "CLOSURE",
+                      "OPEN_WINDOW"
+                    ]
+                  },
+                  "startMinute": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1440
+                  },
+                  "endMinute": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1440
+                  },
+                  "capacity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "date",
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{id}/availability/exceptions/{exceptionId}": {
+      "delete": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.removeException",
+        "description": "Requires `availability.manage`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AvailabilityController_removeException",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exceptionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/services/{id}/availability/rules": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.listRules",
+        "description": "Public - no token required.",
+        "operationId": "AvailabilityController_listRules",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": []
+      },
+      "put": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.replaceRules",
+        "description": "Requires `availability.manage`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "AvailabilityController_replaceRules",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "weekday": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 6
+                        },
+                        "startMinute": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1440
+                        },
+                        "endMinute": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1440
+                        },
+                        "capacity": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000
+                        }
+                      },
+                      "required": [
+                        "weekday",
+                        "startMinute",
+                        "endMinute",
+                        "capacity"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 100
+                  }
+                },
+                "required": [
+                  "rules"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{id}/offerings": {
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "ServicesController.listOfferings",
+        "description": "Public - no token required.",
+        "operationId": "ServicesController_listOfferings",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": []
+      },
+      "post": {
+        "tags": [
+          "Offerings"
+        ],
+        "summary": "OfferingsController.create",
+        "description": "Requires `offering.create`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "OfferingsController_create",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 1440
+                  },
+                  "priceMinor": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  }
+                },
+                "required": [
+                  "name",
+                  "durationMinutes",
+                  "priceMinor"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/services/{id}/publish": {
+      "post": {
+        "tags": [
+          "Vendor Services"
+        ],
+        "summary": "VendorServicesController.publish",
+        "description": "Requires `service.publish`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorServicesController_publish",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/services/{id}/slots": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.slots",
+        "description": "Public - no token required.",
+        "operationId": "AvailabilityController_slots",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offeringId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[cC][^\\s-]{8,}$"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/services/{id}/slots/next-available": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "summary": "AvailabilityController.nextAvailable",
+        "description": "Public - no token required.",
+        "operationId": "AvailabilityController_nextAvailable",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offeringId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[cC][^\\s-]{8,}$"
+            }
+          }
+        ],
+        "security": []
+      }
+    },
+    "/services/{id}/unpublish": {
+      "post": {
+        "tags": [
+          "Vendor Services"
+        ],
+        "summary": "VendorServicesController.unpublish",
+        "description": "Requires `service.publish`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorServicesController_unpublish",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/users/{id}/role": {
+      "put": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "RolesController.assign",
+        "description": "Requires `role.assign`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "RolesController_assign",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "roleId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "roleId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vendors/me": {
+      "get": {
+        "tags": [
+          "Vendors"
+        ],
+        "summary": "VendorsController.get",
+        "description": "Requires `vendor.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorsController_get",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Vendors"
+        ],
+        "summary": "VendorsController.update",
+        "description": "Requires `vendor.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorsController_update",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "businessName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "contactName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "contactPhone": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 32
+                  },
+                  "addressLine1": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "addressLine2": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "timezone": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vendors/me/documents": {
+      "post": {
+        "tags": [
+          "Vendors"
+        ],
+        "summary": "VendorsController.upload",
+        "description": "Requires `vendor.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorsController_upload",
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60,
+              "default": "OTHER"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vendors/me/documents/{id}": {
+      "delete": {
+        "tags": [
+          "Vendors"
+        ],
+        "summary": "VendorsController.remove",
+        "description": "Requires `vendor.update`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorsController_remove",
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/vendors/me/documents/{id}/download": {
+      "get": {
+        "tags": [
+          "Vendors"
+        ],
+        "summary": "VendorsController.download",
+        "description": "Requires `vendor.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorsController_download",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found - also the answer for a resource that exists but is hidden from this caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/vendors/me/services": {
+      "get": {
+        "tags": [
+          "Vendor Services"
+        ],
+        "summary": "VendorServicesController.listOwn",
+        "description": "Requires `service.read`. Ownership and vendor status are enforced separately, so holding the permission is necessary but not always sufficient.",
+        "operationId": "VendorServicesController_listOwn",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "No token, an expired one, or an invalid one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The permission, ownership or vendor-status gate refused the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed. Schemas are strict, so an unexpected key is a 422 rather than being ignored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "SUSPENDED"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

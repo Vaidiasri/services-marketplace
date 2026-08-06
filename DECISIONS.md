@@ -9,6 +9,78 @@ quoted.
 
 ---
 
+## The data model
+
+23 tables and 7 enums, in `server/prisma/schema.prisma`. Relations read left to right: the
+table owns a foreign key to everything in **references**.
+
+### Identity and access
+
+| Table | References | What it holds |
+| --- | --- | --- |
+| `User` | `Role` | Email, `passwordHash` (argon2id), `fullName`, `isActive`. Exactly one role |
+| `Role` | - | `slug` (`SUPER_ADMIN`, `CATALOGUE_MODERATOR`, `VENDOR`, `CUSTOMER`), `isSystem` |
+| `Permission` | - | `slug` (`service.publish`, `vendor.approve`, ...), grouped by `resource` |
+| `RolePermission` | `Role`, `Permission` | The join that makes permissions data. Unique on the pair |
+| `RefreshToken` | `User` | SHA-256 **hash** of a 32-byte token, `expiresAt`, `revokedAt`, `replacedById` - a rotation chain |
+| `PasswordResetToken` | `User` | In the schema, unwritten - see the note below |
+
+### Vendor tables
+
+| Table | References | What it holds |
+| --- | --- | --- |
+| `VendorProfile` | `User` | `businessName`, address, `timezone` (IANA), `status` (`PENDING`/`APPROVED`/`REJECTED`), `rejectionReason`. One per user |
+| `VendorDocument` | `VendorProfile` | `storedFilename`, `originalName`, `mimeType`, `sizeBytes`. The file is on disk; the row is the record of it |
+
+### Catalogue tables
+
+| Table | References | What it holds |
+| --- | --- | --- |
+| `Category` | `Category` (self) | Two-level tree via nullable `parentId`, `slug` unique |
+| `Service` | `VendorProfile`, `Category` | `title`, `description`, `status` (`DRAFT`/`PUBLISHED`/`SUSPENDED`), `slotGranularityMinutes`, the cancellation policy, and `searchVector` (tsvector, trigger-maintained, GIN-indexed) |
+| `Offering` | `Service` | The bookable unit: `name`, `durationMinutes`, `priceMinor`, `currency`, `isActive`. A service has many |
+| `ServiceImage` | `Service` | In the schema, unwritten - see the note below |
+
+### Availability tables
+
+| Table | References | What it holds |
+| --- | --- | --- |
+| `AvailabilityRule` | `Service` | A weekly window as `weekday` + `startMinute`/`endMinute` from local midnight + `capacity`. **Never an instant** - that is what survives DST |
+| `AvailabilityException` | `Service` | A single local date, `type` `CLOSED` or `OPEN_OVERRIDE`, optional minute window. Beats the rules |
+| `SlotCell` | `Service` | The consumption counter: `startUtc`, `capacity`, `bookedCount`. Unique on `(serviceId, startUtc)`, created lazily on first booking. **The row `SELECT ... FOR UPDATE` locks** |
+
+### Booking tables
+
+| Table | References | What it holds |
+| --- | --- | --- |
+| `Booking` | `Service`, `Offering`, `User` (customer), `VendorProfile` | `reference` (`BK-XXXXXXXX`), `startUtc`/`endUtc`, `status`, `priceMinor` **snapshotted at creation**, `paymentMode`, `cancellationFeeMinor` |
+| `BookingStatusHistory` | `Booking`, `User` (actor) | Every transition: `fromStatus`, `toStatus`, `reason`, actor, timestamp. The audit trail that matters |
+| `BookingSlotCell` | `Booking`, `SlotCell` | Which cells this booking actually consumed, so releasing capacity is exact rather than recomputed from availability that may since have changed |
+
+### Money and safety
+
+| Table | References | What it holds |
+| --- | --- | --- |
+| `Payment` | `Booking` | `amountMinor`, `status` (`INITIATED`/`SUCCESS`/`FAILED`/`REFUNDED`/`PARTIALLY_REFUNDED`), `mode`, `providerRef`, `failureReason` |
+| `LedgerEntry` | `Payment` | Append-only `CHARGE`/`REFUND`/`FEE` lines. Nothing is ever updated in place, so the history of a refund cannot be rewritten |
+| `IdempotencyKey` | `User` | Unique on `(userId, scope, key)` with a request hash and the stored response. Written **inside** the effect's transaction, so a crash cannot leave a key claiming work that never happened |
+| `WebhookEvent` | - | `eventId` unique. The dedupe is the index, not a status read - two simultaneous deliveries would both read `INITIATED` and both apply |
+| `AuditLog` | `User` (actor) | In the schema, unwritten - see the note below |
+
+**Three tables exist and nothing writes to them:** `PasswordResetToken`, `ServiceImage` and
+`AuditLog`. Password reset is not in the brief; images are not built because Render's disk is
+ephemeral; and `BookingStatusHistory` already carries actor, action, target and timestamp for
+every intervention that matters. They are named here rather than quietly left for a reviewer to
+find, because an unexplained unused table looks like something forgotten. Removing them was the
+alternative and would have cost a migration for no behavioural gain.
+
+**What has no table, deliberately:** slots. There is no row per bookable start. Availability is
+derived on every read - rules minus exceptions minus consumption - and `SlotCell` appears only
+once someone books. A slots table would have to be regenerated whenever a rule changed, and the
+regeneration would race the bookings already pointing at it.
+
+---
+
 ## Permissions
 
 **Permissions are rows, not enums.** A role's set is resolved per request from
@@ -273,7 +345,7 @@ cannot match it, and it runs `--dry-run` first.
 | Service image upload | Render's disk is ephemeral; images would vanish on every redeploy |
 | Vendor service/availability editor UI | The API is complete and tested; screen time went to the customer journey, which demonstrates M4-M7 |
 | Category and roles console UI | Same - reachable via the API, and the permission model is already visible through the vendor approval queue |
-| `AuditLog` table | `BookingStatusHistory` already records actor, action, target and timestamp for the interventions that matter |
+| Writing to `AuditLog` | The table is in the schema; nothing writes to it. `BookingStatusHistory` already records actor, action, target and timestamp for the interventions that matter |
 | Keyset pagination | Offset is what the brief asks for and is correct at this scale |
 
 ---
@@ -290,3 +362,48 @@ cannot match it, and it runs `--dry-run` first.
 - **The integration suites take longer than a 15-minute access token.** The bookings suite
   re-authenticates before its final section. That is the auth layer working correctly, not a
   workaround.
+
+---
+
+## What I would build next, given another week
+
+In this order, because each one is the largest remaining risk at the time it is reached.
+
+**1. The vendor service and availability editor, as screens.** The biggest gap between what the
+API does and what a reviewer can click. Everything behind it - create, update, publish,
+unpublish, weekly rules, date exceptions - is built and tested; it is driven by curl. Two days,
+and it is the first thing I would do because it is the only unbuilt item that changes what the
+product *appears* to do.
+
+**2. A background job for the states nothing currently moves.** A `CONFIRMED` booking whose end
+time has passed sits `CONFIRMED` forever - completion is a vendor action, and a vendor who never
+opens the app never performs it. The same job would expire a `PENDING` `PAY_NOW` booking whose
+payment stayed `INITIATED`, which today holds capacity indefinitely. That is the one behaviour I
+would call an outright defect rather than a cut, and it is second only because a reviewer sees
+it less readily than a missing screen.
+
+**3. Keyset pagination on the catalogue, and sorting by price.** Offset is correct at seed scale
+and wrong at a hundred thousand services. Sorting by price needs the price denormalised onto
+`Service` (a `minPriceMinor` maintained alongside the offerings) - Prisma cannot order by an
+aggregate over a relation, and I would not add a second query path around the single visibility
+rule that keeps drafts out of the catalogue.
+
+**4. Notifications, as an outbox rather than an email call.** A booking transition writes an
+outbox row inside the same transaction; a worker delivers it. Sending email inside the booking
+transaction means an SMTP timeout rolls back a booking that should have succeeded, and sending
+it after the commit means a crash loses the notification silently.
+
+**5. Real payments, which should be a small change and is the test of whether the port is
+honest.** `PaymentProvider` is an interface with one implementation. A real gateway means a
+second implementation, a client-side redirect or element, and a webhook whose signature scheme
+differs - the HMAC verification, raw-body handling, `eventId` dedupe and `applyOutcome`
+transaction all stay. If replacing the mock touched `BookingsService`, the boundary was drawn
+in the wrong place.
+
+**6. Then the two consoles I cut** - category management and roles-and-permissions - which are
+CRUD over endpoints that already exist and enforce their own permissions. Last, because they
+change nothing about correctness and a super admin can already do all of it by API.
+
+What I would **not** spend the week on: more integration tests. At 472 assertions the marginal
+one costs more wall-clock than it catches. I would spend that time on the job in item 2, because
+the failure it prevents is capacity held by a booking nobody will ever complete.

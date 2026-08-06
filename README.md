@@ -17,6 +17,7 @@ data-driven permissions, real booking rules, mocked money.
 | **Web app** | <https://services-marketplace-server.vercel.app> |
 | **API** | <https://services-marketplace-bdf2.onrender.com> |
 | **API health** | <https://services-marketplace-bdf2.onrender.com/health> |
+| **API reference** | [`openapi.json`](openapi.json) - all 68 endpoints, base URL already pointed at the deployed API |
 
 > The API is on Render's free tier and sleeps after inactivity. The first request can take
 > **30-50 seconds** to wake it. `/health` is the cheapest way to wake it before a walkthrough.
@@ -127,6 +128,30 @@ npm run dev --workspace=server    # API on http://localhost:3000
 npm run dev --workspace=client    # web app on http://localhost:5173
 ```
 
+## The API reference
+
+[`openapi.json`](openapi.json) covers all 68 endpoints. Import it straight into Postman
+(*Import → File → openapi.json*) and it arrives as a collection with the deployed API already
+selected as the server, or open it in any OpenAPI viewer.
+
+It is **generated from the running application**, not written by hand:
+
+```bash
+npm run openapi --workspace=server    # rewrites openapi.json
+```
+
+The paths and methods come from Nest's router, the request bodies and query parameters come from
+the same Zod schemas the server validates with, and the required permission on each route comes
+from the decorator the guard reads. So it cannot document a route that does not exist, a field
+the server would reject, or a permission it no longer requires - which is exactly how a
+hand-written collection goes stale the first time a schema gains a field.
+
+To use it: `POST /auth/login` returns an access token in the body; send it as
+`Authorization: Bearer <token>`. Response bodies are the one thing the generator cannot
+introspect - handlers return plain objects with no schema attached - so each response documents
+its status code, and every failure documents the single error envelope
+`{ error: { code, message, details?, requestId } }` rather than an invented shape.
+
 ## Tests
 
 ```bash
@@ -148,6 +173,7 @@ single-flight, which is the piece most likely to log a user out mid-task if it r
 | `npm run test:bookings` | The state machine over all 108 `(from, to, actor)` triples, and the cancellation policy |
 | `npm run race` | **The concurrency proof.** 20 simultaneous bookings at a capacity-3 slot |
 | `npx ts-node scripts/clean-test-data.ts --dry-run` | Lists the throwaway accounts the suites leave behind, without deleting them |
+| `npm run openapi` | Regenerates `openapi.json` from the router and the Zod schemas |
 
 ### Payments are mocked, and every outcome is triggerable
 
