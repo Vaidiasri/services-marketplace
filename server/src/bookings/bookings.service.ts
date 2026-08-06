@@ -19,7 +19,8 @@ import {
 } from './capacity.repository';
 import { assertTransition, isTerminal, type Actor } from './state-machine';
 import { evaluateCancellation } from './cancellation-policy';
-import { IdempotencyService } from './idempotency.service';
+import { IdempotencyService } from '../common/idempotency.service';
+import { PaymentsService } from '../payments/payments.service';
 import type {
   AdminBookingQuery,
   BookingQuery,
@@ -99,6 +100,7 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly permissions: PermissionResolver,
     private readonly idempotency: IdempotencyService,
+    private readonly payments: PaymentsService,
   ) {}
 
   // ---------------------------------------------------------------- create
@@ -583,7 +585,7 @@ export class BookingsService {
 
     const cellIds = booking.slotCells.map((c) => c.slotCellId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.booking.update({
         where: { id: booking.id },
         data: {
@@ -613,6 +615,20 @@ export class BookingsService {
 
       return outcome ? { ...updated, cancellation: outcome } : updated;
     }, TX_OPTIONS);
+
+    // The refund runs AFTER the cancellation commits, not inside it. The provider call is a
+    // network round trip, and holding the booking's transaction open across it is exactly the
+    // pattern that exhausts a connection pool. If the refund then fails, the cancellation still
+    // stands and the failure is recorded on the payment - a customer whose refund failed must
+    // not also still hold a booking.
+    if (outcome && to === BookingStatus.CANCELLED) {
+      await this.payments.refundForBooking(booking.id, outcome.refundableMinor);
+    } else if (opts.forceActor === 'ADMIN' && to === BookingStatus.CANCELLED) {
+      // Force-cancel refunds in full: no fee is charged, so the whole price goes back.
+      await this.payments.refundForBooking(booking.id, booking.priceMinor);
+    }
+
+    return result;
   }
 
   /**

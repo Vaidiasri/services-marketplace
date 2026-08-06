@@ -411,8 +411,23 @@ const code = (r) => r.body?.error?.code;
 
   // ============================================================ suspension stops new bookings
 
-  await post(`/admin/services/${svcA.id}/suspend`, { reason: 'Investigating a complaint here' }, su);
-  r = await bookAt(svcA, slotsA[3].startUtc, cust, `k-susp-${stamp}`);
+  // Re-authenticate first. Access tokens live 15 minutes and this suite now runs longer than
+  // that against a remote database, so the last few requests were failing with
+  // 401 TOKEN_EXPIRED - the tokens really had expired, which is the auth layer working.
+  const relogin = async (email) =>
+    (await post('/auth/login', { email, password: 'correct-horse' })).body.accessToken;
+  const custFresh = await relogin(`bc${stamp}1@marketplace.test`);
+  const otherFresh = await relogin(`bc${stamp}2@marketplace.test`);
+  const suFresh = (
+    await post('/auth/login', {
+      email: 'super@marketplace.test',
+      password: process.env.TEST_ADMIN_PASSWORD ?? 'TestPass!2026',
+    })
+  ).body.accessToken;
+  ok(!!custFresh && !!otherFresh && !!suFresh, 're-authenticated for the final section');
+
+  await post(`/admin/services/${svcA.id}/suspend`, { reason: 'Investigating a complaint here' }, suFresh);
+  r = await bookAt(svcA, slotsA[3].startUtc, custFresh, `k-susp-${stamp}`);
   ok(
     r.status === 404,
     'booking a SUSPENDED service -> 404, because create resolves through publicServiceWhere()',
@@ -420,9 +435,9 @@ const code = (r) => r.body?.error?.code;
   );
   // Read as `other`, who made it. Reading it as `cust` correctly 404s, which is the
   // cross-tenant rule doing its job rather than the suspension affecting anything.
-  r = await call(`/bookings/${secondBooking.id}`, {}, other);
+  r = await call(`/bookings/${secondBooking.id}`, {}, otherFresh);
   ok(r.status === 200 && r.body.status !== 'CANCELLED', 'while the bookings already made survive it', `${r.status} ${r.body?.status}`);
-  await post(`/admin/services/${svcA.id}/unsuspend`, {}, su);
+  await post(`/admin/services/${svcA.id}/unsuspend`, {}, suFresh);
 
   await prisma.$disconnect();
   console.log(`\n${pass} passed, ${fail} failed`);

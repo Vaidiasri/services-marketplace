@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
+import { PaymentsModule } from '../payments/payments.module';
 import { AdminBookingsController } from './admin-bookings.controller';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
-import { IdempotencyService } from './idempotency.service';
 
-/** IdempotencyService is exported because M7's payment confirm replays on the same table. */
 @Module({
+  imports: [PaymentsModule],
   controllers: [BookingsController, AdminBookingsController],
-  providers: [BookingsService, IdempotencyService],
-  exports: [BookingsService, IdempotencyService],
+  providers: [BookingsService],
+  exports: [BookingsService],
 })
 export class BookingsModule {}

@@ -147,6 +147,8 @@ export const Errors = {
       HttpStatus.CONFLICT,
       'That Idempotency-Key was already used with a different request body.',
     ),
+  nothingToRefund: () =>
+    new AppError('NOTHING_TO_REFUND', HttpStatus.CONFLICT, 'This booking has no successful payment to refund.'),
   wouldOrphanPublishedService: () =>
     new AppError(
       'WOULD_ORPHAN_PUBLISHED_SERVICE',
@@ -266,6 +268,22 @@ export const Errors = {
       'The appointment has not started yet.',
     ),
 
+  paymentNotPending: (status: string) =>
+    new AppError(
+      'PAYMENT_NOT_PENDING',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      `This payment is already ${status.toLowerCase()}.`,
+      { status },
+    ),
+  notPayAfter: () =>
+    new AppError(
+      'NOT_PAY_AFTER',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Cash can only be collected on a PAY_AFTER booking.',
+    ),
+  // 401, not 403: an unsigned webhook has not proved who it is, so it is unauthenticated.
+  webhookSignatureInvalid: () =>
+    new AppError('WEBHOOK_SIGNATURE_INVALID', HttpStatus.UNAUTHORIZED, 'Webhook signature is not valid.'),
   invalidWindow: (detail: string) =>
     new AppError('INVALID_WINDOW', HttpStatus.UNPROCESSABLE_ENTITY, detail),
   dateInPast: (date: string) =>

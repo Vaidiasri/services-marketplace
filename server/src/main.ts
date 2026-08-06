@@ -6,6 +6,8 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
+import { json } from 'express';
+import type { IncomingMessage } from 'node:http';
 import { AppModule } from './app.module';
 import { isOriginAllowed } from './common/cors';
 import { ensureUploadDir } from './vendors/upload.config';
@@ -30,6 +32,19 @@ async function bootstrap(): Promise<void> {
 
   // Needed to read the httpOnly refresh cookie on /auth/refresh and /auth/logout.
   app.use(cookieParser());
+
+  // Keeps the exact bytes of a webhook body so its HMAC can be verified. Re-serialising the
+  // parsed object would produce different bytes - different key order, different whitespace -
+  // and every signature would fail for reasons that look like a crypto bug.
+  app.use(
+    json({
+      verify: (req: IncomingMessage, _res: unknown, buf: Buffer) => {
+        if (req.url?.startsWith('/payments/webhook')) {
+          (req as IncomingMessage & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+        }
+      },
+    }),
+  );
   // Render and Vercel both terminate TLS upstream, so without this Express sees the
   // request as http and refuses to set a `secure` cookie - the refresh cookie would
   // silently never reach the browser in production.

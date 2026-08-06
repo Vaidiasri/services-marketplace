@@ -6,7 +6,9 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { AvailabilityModule } from './availability/availability.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { PaymentsModule } from './payments/payments.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { IdempotencyModule } from './common/idempotency.module';
 import { RequestScopeMiddleware } from './common/request-scope.middleware';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,12 +20,14 @@ import { VendorsModule } from './vendors/vendors.module';
 @Module({
   imports: [
     PrismaModule,
+    IdempotencyModule,
     RbacModule,
     AuthModule,
     VendorsModule,
     CatalogModule,
     AvailabilityModule,
     BookingsModule,
+    PaymentsModule,
     ThrottlerModule.forRoot([{ name: 'default', limit: 120, ttl: 60_000 }]),
   ],
   controllers: [HealthController],

@@ -20,12 +20,12 @@ const prisma = new PrismaClient();
 const DRY_RUN = process.argv.includes('--dry-run');
 
 /**
- * Prefixes used by the suites: uploads, catalog, availability, bookings, timezone, race.
+ * Prefixes used by the suites: uploads, catalog, availability, bookings, payments, timezone, race.
  *
  * The trailing `[a-z0-9_]*` matters - the suites append a discriminator (`...941a`, `..._0`)
  * after the stamp, and without it this matched only 48 of the 124 test accounts.
  */
-const TEST_EMAIL = /^(up|cat|av|bk|bc|tz|race|racer|cust|vendor)\d{10,}[a-z0-9_]*@marketplace\.test$/;
+const TEST_EMAIL = /^(up|cat|av|bk|bc|pv|pc|tz|race|racer|probe|cust|vendor)\d{10,}[a-z0-9_]*@marketplace\.test$/;
 
 async function main(): Promise<void> {
   const users = await prisma.user.findMany({ select: { id: true, email: true } });

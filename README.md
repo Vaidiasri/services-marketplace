@@ -12,9 +12,9 @@ data-driven permissions, real booking rules, mocked money.
 
 | | |
 | --- | --- |
-| **Web app** | https://services-marketplace.vercel.app |
-| **API** | https://services-marketplace-bdf2.onrender.com |
-| **API health** | https://services-marketplace-bdf2.onrender.com/health |
+| **Web app** | <https://services-marketplace.vercel.app> |
+| **API** | <https://services-marketplace-bdf2.onrender.com> |
+| **API health** | <https://services-marketplace-bdf2.onrender.com/health> |
 
 > The API is on Render's free tier and sleeps after inactivity. The first request can take
 > **30-50 seconds** to wake it. `/health` is the cheapest way to wake it before a walkthrough.
@@ -119,11 +119,29 @@ Runs route coverage, four unit suites and seven integration suites against a liv
 | `npm run test:bookings` | The state machine over all 108 `(from, to, actor)` triples, and the cancellation policy |
 | `npm run race` | **The concurrency proof.** 20 simultaneous bookings at a capacity-3 slot |
 
+### Payments are mocked, and every outcome is triggerable
+
+There is no real or sandbox gateway. `POST /payments/:id/confirm` takes a token that decides
+the outcome deterministically, so a reviewer can trigger a decline on demand rather than wait
+for a random one:
+
+| Token | Result | What it demonstrates |
+| --- | --- | --- |
+| `tok_success` | Payment `SUCCESS` | The default when no token is sent |
+| `tok_fail` | Payment `FAILED`, reason `card_declined` | Booking is cancelled and **its slot becomes bookable again**, in the same transaction |
+| `tok_delay` | Stays `INITIATED` | Resolve it by posting a signed webhook |
+| `tok_refund_fail` | Charges, but the refund is rejected | The refund-failure path is recorded, not swallowed |
+
+`POST /payments/webhook` is public but HMAC-verified over the raw body with
+`MOCK_WEBHOOK_SECRET` - the signature *is* the authentication, and an unsigned delivery is a
+401. Redelivery is deduplicated by a unique index on `eventId`, not by reading the payment's
+status, because two simultaneous deliveries would both read `INITIATED` and both apply.
+
 ### The concurrency proof
 
 `server/scripts/race.ts`, with its committed output in `server/scripts/race-output.txt`:
 
-```
+```text
 created=3 conflicted=17 other=0
    3 x 201 CREATED
   17 x 409 SLOT_FULL
@@ -138,7 +156,7 @@ project containing raw SQL.
 
 ## How it is built
 
-```
+```text
 server/          NestJS 10, Prisma 6, PostgreSQL
   src/auth/          argon2id, access + rotating refresh tokens
   src/rbac/          permission resolution, ownership helpers
