@@ -19,14 +19,21 @@ export type NavSection = { label: string; to: string; permission: string };
  * Data, not markup, so adding a section is one entry and the shrinking-UI demo needs no
  * code change - a role invented at runtime gets a sensible nav for free.
  */
+/**
+ * Every entry here has both a screen and an endpoint behind it.
+ *
+ * A 'Dashboard' (`admin.dashboard.read`) and a 'Users' (`user.read_all`) entry used to sit in
+ * this list, and both led to the 404 page: there is no aggregate endpoint and no user-list
+ * endpoint to build them from. Offering a link that cannot work is worse than not offering it,
+ * so they are gone rather than stubbed - a role's users are visible on the roles screen, and
+ * changing one is `PUT /users/:id/role`.
+ */
 const ADMIN_NAV: NavSection[] = [
-  { label: 'Dashboard', to: '/admin', permission: 'admin.dashboard.read' },
   { label: 'Vendor applications', to: '/admin/vendors', permission: 'vendor.read_all' },
   { label: 'Categories', to: '/admin/categories', permission: 'category.read' },
   { label: 'Services', to: '/admin/services', permission: 'service.read_all' },
   { label: 'Bookings', to: '/admin/bookings', permission: 'booking.read_all' },
   { label: 'Roles & permissions', to: '/admin/roles', permission: 'role.read' },
-  { label: 'Users', to: '/admin/users', permission: 'user.read_all' },
 ];
 
 const VENDOR_NAV: NavSection[] = [

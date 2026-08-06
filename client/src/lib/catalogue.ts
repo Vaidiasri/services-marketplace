@@ -141,11 +141,18 @@ export function useCatalogue(filters: CatalogueFilters) {
   });
 }
 
+/**
+ * Gated on `booted` even though the endpoint is public, because the response is not the
+ * same for everyone: a DRAFT service is 404 to a stranger and visible to its owner. Firing
+ * before the boot refresh lands means an owner opening their own draft by URL gets a 404
+ * that then sits in the cache - which is exactly what the availability editor did.
+ */
 export function useService(id: string | undefined) {
+  const { booted } = useAuth();
   return useQuery({
     queryKey: ['service', id],
     queryFn: async () => (await http.get<Service>(`/services/${id}`)).data,
-    enabled: !!id,
+    enabled: !!id && booted,
   });
 }
 

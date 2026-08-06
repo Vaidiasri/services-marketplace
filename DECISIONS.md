@@ -343,8 +343,7 @@ cannot match it, and it runs `--dry-run` first.
 | --- | --- |
 | Staff assignment (brief stretch) | A second capacity dimension on top of the most heavily graded logic in the assignment |
 | Service image upload | Render's disk is ephemeral; images would vanish on every redeploy |
-| Vendor service/availability editor UI | The API is complete and tested; screen time went to the customer journey, which demonstrates M4-M7 |
-| Category and roles console UI | Same - reachable via the API, and the permission model is already visible through the vendor approval queue |
+| An admin dashboard and a user list | Neither has an endpoint to build from - there is no aggregate query and no `GET /users`. Both nav links existed and led to the 404 page, so they were removed rather than stubbed |
 | Writing to `AuditLog` | The table is in the schema; nothing writes to it. `BookingStatusHistory` already records actor, action, target and timestamp for the interventions that matter |
 | Keyset pagination | Offset is what the brief asks for and is correct at this scale |
 
@@ -369,41 +368,35 @@ cannot match it, and it runs `--dry-run` first.
 
 In this order, because each one is the largest remaining risk at the time it is reached.
 
-**1. The vendor service and availability editor, as screens.** The biggest gap between what the
-API does and what a reviewer can click. Everything behind it - create, update, publish,
-unpublish, weekly rules, date exceptions - is built and tested; it is driven by curl. Two days,
-and it is the first thing I would do because it is the only unbuilt item that changes what the
-product *appears* to do.
-
-**2. A background job for the states nothing currently moves.** A `CONFIRMED` booking whose end
+**1. A background job for the states nothing currently moves.** A `CONFIRMED` booking whose end
 time has passed sits `CONFIRMED` forever - completion is a vendor action, and a vendor who never
 opens the app never performs it. The same job would expire a `PENDING` `PAY_NOW` booking whose
 payment stayed `INITIATED`, which today holds capacity indefinitely. That is the one behaviour I
-would call an outright defect rather than a cut, and it is second only because a reviewer sees
-it less readily than a missing screen.
+would call an outright defect rather than a cut, so it is first: every other item on this list
+is an improvement, and this one is a bug.
 
-**3. Keyset pagination on the catalogue, and sorting by price.** Offset is correct at seed scale
+**2. Keyset pagination on the catalogue, and sorting by price.** Offset is correct at seed scale
 and wrong at a hundred thousand services. Sorting by price needs the price denormalised onto
 `Service` (a `minPriceMinor` maintained alongside the offerings) - Prisma cannot order by an
 aggregate over a relation, and I would not add a second query path around the single visibility
 rule that keeps drafts out of the catalogue.
 
-**4. Notifications, as an outbox rather than an email call.** A booking transition writes an
+**3. Notifications, as an outbox rather than an email call.** A booking transition writes an
 outbox row inside the same transaction; a worker delivers it. Sending email inside the booking
 transaction means an SMTP timeout rolls back a booking that should have succeeded, and sending
 it after the commit means a crash loses the notification silently.
 
-**5. Real payments, which should be a small change and is the test of whether the port is
+**4. Real payments, which should be a small change and is the test of whether the port is
 honest.** `PaymentProvider` is an interface with one implementation. A real gateway means a
 second implementation, a client-side redirect or element, and a webhook whose signature scheme
 differs - the HMAC verification, raw-body handling, `eventId` dedupe and `applyOutcome`
 transaction all stay. If replacing the mock touched `BookingsService`, the boundary was drawn
 in the wrong place.
 
-**6. Then the two consoles I cut** - category management and roles-and-permissions - which are
-CRUD over endpoints that already exist and enforce their own permissions. Last, because they
-change nothing about correctness and a super admin can already do all of it by API.
+**5. Staff assignment**, the brief's stretch item - a second capacity dimension on top of the
+slot grid. Last, because it multiplies the most heavily graded logic in the assignment by a
+factor I would not want to be debugging in the same week I added it.
 
 What I would **not** spend the week on: more integration tests. At 472 assertions the marginal
-one costs more wall-clock than it catches. I would spend that time on the job in item 2, because
+one costs more wall-clock than it catches. I would spend that time on the job in item 1, because
 the failure it prevents is capacity held by a booking nobody will ever complete.

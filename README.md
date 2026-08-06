@@ -5,11 +5,15 @@ their calendar, admins approve vendors and police the catalogue. Real authentica
 data-driven permissions, real booking rules, mocked money.
 
 > **Scope, stated plainly.** The API implements all of this and is covered by 472 assertions.
-> The **web app covers the customer journey end to end** - browse, filter, pick a slot, book,
-> pay, view the status timeline, cancel - plus the vendor booking queue and the admin vendor
-> approval queue. What it does **not** have a screen for yet: vendor service and availability
-> editing, category management, and the roles-and-permissions console. Those are fully
-> implemented and tested in the API; they are simply driven by curl rather than by a form.
+> The web app now has a screen for every part of it: the customer journey end to end (browse,
+> filter, pick a slot, book, pay, status timeline, cancel), the vendor's own catalogue and
+> calendar (create a service, price its offerings, set weekly hours and date exceptions,
+> publish), the vendor booking queue, and the admin consoles - vendor approvals, categories,
+> catalogue moderation, all bookings, and roles and permissions.
+>
+> Two things deliberately have no screen, because they have no endpoint to build one from: an
+> admin dashboard and a user list. Both nav links used to exist and led to the 404 page; they
+> were removed rather than stubbed. Changing a user's role is `PUT /users/:id/role`.
 > Nothing described below is a screen that does not exist.
 
 | | |
@@ -32,6 +36,12 @@ data-driven permissions, real booking rules, mocked money.
 4. Sign in as `moderator@marketplace.test` and go to `/admin/vendors`. The link is not in the
    navigation, and typing the URL is refused by the server - that is the permission model, not
    a client-side check.
+5. As `super@marketplace.test`, open **Roles & permissions**, untick `service.suspend` on the
+   Catalogue Moderator and save. The moderator loses that power on their **next request** - no
+   redeploy, no re-login - and `POST /admin/services/:id/suspend` answers
+   `403 {"missing":["service.suspend"]}`. Tick it back to restore.
+6. As `vendor@marketplace.test`, open **My services** and try to publish a draft before it has
+   an offering and hours. Both refusals come from the server, in the order a vendor hits them.
 
 ## Seeded accounts
 
@@ -221,8 +231,10 @@ server/          NestJS 10, Prisma 6, PostgreSQL
   src/availability/  rules, exceptions, the pure slot generator
   src/bookings/      state machine, capacity locking, cancellation policy
 client/          React 18, Vite, Tailwind, shadcn/ui, TanStack Query, axios
-  src/routes/        catalogue, service detail + slot picker, bookings,
-                     vendor queue, admin approvals - see the scope note at the top
+  src/routes/        catalogue, service detail + slot picker, bookings, vendor services
+                     and availability editors, vendor queue, admin vendors, categories,
+                     catalogue moderation, bookings and roles consoles
+  src/lib/           catalogue.ts (the customer journey), manage.ts (vendor + admin writes)
 doc/             The plan this was built from, module by module
 ```
 
