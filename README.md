@@ -82,6 +82,15 @@ npx prisma migrate deploy    # or `migrate dev` if you intend to add migrations
 npx prisma db seed
 ```
 
+> **Run migrations against the DIRECT (unpooled) Neon endpoint** - the host *without*
+> `-pooler`. `prisma migrate` takes a session-scoped Postgres advisory lock, and Neon's pooled
+> endpoint is PgBouncer in transaction mode, where that lock is unreliable. Against the pooled
+> host it fails with `P1002: Timed out trying to acquire a postgres advisory lock`.
+>
+> Migrating is a **deploy step, not a boot step**. The server's `start` script deliberately does
+> not migrate: several instances booting at once would all race for the same advisory lock, and
+> the losers would crash-loop on a database that is already up to date.
+
 The seed is **idempotent** - every write is an upsert and role permission sets are reconciled
 rather than appended, so it is safe to run repeatedly and on every deploy. It creates the
 permission catalogue, four system roles, a two-level category tree, the six accounts above,
